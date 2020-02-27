@@ -1,0 +1,10 @@
+{
+  "name": "ibiza",
+  "version": "0.1.0",
+  "description": "React State Management for Party Animals",
+  "main": "index.js",
+  "repository": "git@github.com:joelmoss/ibiza.git",
+  "author": "Joel Moss <joel@developwithstyle.com>",
+  "license": "MIT",
+  "private": false
+}
