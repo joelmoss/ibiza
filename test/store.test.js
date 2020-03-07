@@ -1,4 +1,4 @@
-import createStore from '../src/store'
+import { createStore } from '../src'
 
 test('store.getState()', () => {
   // arrange
@@ -130,13 +130,31 @@ test('root action', () => {
     }
   })
 
-  // assert
-  expect(Object.keys(store.actions)).toEqual(['doSomething'])
-
   // act
   store.actions.doSomething()
 
   // assert
   const actual = store.getState().todos.items
   expect(actual).toEqual({ 1: { text: 'foo' }, 2: { text: 'bar' } })
+})
+
+test('built-in set action', () => {
+  // arrange
+  const store = createStore({
+    todos: {
+      items: { 1: { text: 'foo' } }
+    },
+    doSomething: state => {
+      state.todos.items[2] = { text: 'bar' }
+    }
+  })
+
+  // assert
+  expect(Object.keys(store.actions)).toEqual(['set', 'doSomething'])
+
+  // act
+  store.actions.set({ 'todos.count': 1 })
+
+  // assert
+  expect(store.getState().todos.count).toEqual(1)
 })

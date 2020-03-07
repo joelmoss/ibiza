@@ -1,5 +1,16 @@
 # Ibiza - React State Management for Party Animals
 
+## Usage
+
+```javascript
+const store = createStore({
+  count: 0,
+  increment: state => {
+    state.count = state.count + 1
+  }
+})
+```
+
 ## Improvemnts on easy-peasy
 
 - Listeners can update state anywhere in the store.

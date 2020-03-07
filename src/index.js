@@ -1,4 +1,6 @@
-export const action = fn => {
-  fn['a'] = {}
-  return fn
-}
+import { Provider, useSelector } from 'react-redux'
+import { createStore } from './store'
+import { useActions } from './useActions'
+import { useReduxContext } from './useReduxContext'
+
+export { Provider, useSelector, createStore, useActions, useReduxContext }
