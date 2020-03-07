@@ -32,8 +32,10 @@ test('empty object in state', () => {
     },
     bar: null
   }
+
   // act
   const store = createStore(model)
+
   // assert
   expect(store.getState()).toEqual({
     todos: {
