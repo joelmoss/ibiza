@@ -46,23 +46,7 @@ test('empty object in state', () => {
   })
 })
 
-test('store.actions', () => {
-  // arrange
-  const model = {
-    session: {
-      user: undefined,
-      login: () => {}
-    }
-  }
-
-  // act
-  const store = createStore(model)
-
-  // assert
-  expect(Object.keys(store.actions)).toEqual(['session.login'])
-})
-
-test('call an action with local state', () => {
+test('actions receive local state only', () => {
   // arrange
   const model = {
     session: {
@@ -84,7 +68,7 @@ test('call an action with local state', () => {
   })
 
   // act
-  store.actions['session.login']({ name: 'joel' })
+  store.actions.session.login({ name: 'joel' })
 
   // assert
   //
@@ -122,13 +106,9 @@ test('nested action', () => {
       }
     }
   })
-  expect(Object.keys(store.actions)).toEqual([
-    'session.settings.setFavouriteColor',
-    'session.login'
-  ])
 
   // act
-  store.actions['session.settings.setFavouriteColor']('blue')
+  store.actions.session.settings.setFavouriteColor('blue')
 
   // assert
   expect(store.getState().session).toEqual({

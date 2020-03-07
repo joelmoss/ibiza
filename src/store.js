@@ -1,6 +1,7 @@
 import { createStore as createReduxStore } from 'redux'
 import isPlainObject from 'lodash/isPlainObject'
 import get from 'lodash/get'
+import set from 'lodash/set'
 import unset from 'lodash/unset'
 import { createDraft, finishDraft } from 'immer'
 
@@ -26,7 +27,7 @@ export default model => {
   }
 
   const defaultState = model
-  const actionCreators = {}
+  const actions = {}
   const actionReducers = {}
 
   const recurseModelSlice = (slice, parentPath) => {
@@ -42,9 +43,9 @@ export default model => {
         actionReducers[actionType] = value
         actionReducers[actionType].path = parentPath
 
-        actionCreators[actionType] = payload => {
+        set(actions, actionType, payload => {
           return refs.dispatch({ type: actionType, payload })
-        }
+        })
 
         // Then delete the value from the defaultState
         unset(defaultState, path)
@@ -60,6 +61,6 @@ export default model => {
   refs.dispatch = store.dispatch
 
   return Object.assign(store, {
-    actions: actionCreators
+    actions
   })
 }
