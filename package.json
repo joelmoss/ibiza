@@ -2,9 +2,78 @@
   "name": "ibiza",
   "version": "0.1.0",
   "description": "React State Management for Party Animals",
-  "main": "index.js",
+  "main": "src/index.js",
+  "type": "module",
   "repository": "git@github.com:joelmoss/ibiza.git",
   "author": "Joel Moss <joel@developwithstyle.com>",
   "license": "MIT",
-  "private": false
+  "private": false,
+  "keywords": [
+    "react",
+    "redux",
+    "state"
+  ],
+  "jest": {
+    "transform": {
+      ".(js|jsx|ts|tsx)": "@sucrase/jest-plugin"
+    }
+  },
+  "scripts": {
+    "test": "jest",
+    "test-watch": "jest --watch",
+    "lint": "eslint src"
+  },
+  "eslintConfig": {
+    "extends": [
+      "plugin:prettier/recommended",
+      "plugin:import/recommended",
+      "plugin:react/recommended"
+    ],
+    "settings": {
+      "react": {
+        "version": "detect"
+      }
+    },
+    "parserOptions": {
+      "ecmaFeatures": {
+        "jsx": true
+      },
+      "ecmaVersion": 2018,
+      "sourceType": "module"
+    },
+    "env": {
+      "browser": true,
+      "es6": true
+    }
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 100
+  },
+  "wallaby": {
+    "reportConsoleErrorAsError": true,
+    "runMode": "onsave"
+  },
+  "peerDependencies": {
+    "react": "^16.8.0"
+  },
+  "devDependencies": {
+    "@sucrase/jest-plugin": "^2.0.0",
+    "babel-eslint": "^10.1.0",
+    "eslint": "^6.8.0",
+    "eslint-config-prettier": "^6.10.0",
+    "eslint-plugin-import": "^2.20.1",
+    "eslint-plugin-prettier": "^3.1.2",
+    "eslint-plugin-react": "^7.18.3",
+    "jest": "^25.1.0",
+    "prettier": "1.19.1",
+    "react": "^16.13.0",
+    "sucrase": "^3.12.1"
+  },
+  "dependencies": {
+    "immer": "^6.0.0",
+    "lodash": "^4.17.15",
+    "redux": "^4.0.5"
+  }
 }
