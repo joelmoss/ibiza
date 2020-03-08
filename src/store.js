@@ -1,10 +1,10 @@
-import { createStore as createReduxStore } from 'redux'
+import { configureStore } from '@reduxjs/toolkit'
 import isPlainObject from 'lodash/isPlainObject'
 import get from 'lodash/get'
 import set from 'lodash/set'
 import unset from 'lodash/unset'
 import forEach from 'lodash/forEach'
-import { createDraft, finishDraft } from 'immer'
+import { createDraft, finishDraft, isDraft } from 'immer'
 
 export const createStore = model => {
   const refs = {}
@@ -26,12 +26,23 @@ export const createStore = model => {
     return state
   }
 
-  const createActionReducer = (fn, { type, path }) => {
+  const createReducer = (fn, { type, path }) => {
     actionReducers[type] = fn
     actionReducers[type].path = path
+  }
 
+  const createActionCreator = type => {
     set(actions, type, payload => {
       return refs.dispatch({ type, payload })
+    })
+  }
+
+  const createThunkCreator = (fn, type) => {
+    set(actions, type, payload => {
+      const helpers = {
+        getState: refs.getState
+      }
+      return refs.dispatch(() => fn(actions, payload, helpers))
     })
   }
 
@@ -39,8 +50,8 @@ export const createStore = model => {
   const actions = {}
   const actionReducers = {}
 
-  // Add the built-in reduce action.
-  createActionReducer(
+  // Add the built-in `set` action.
+  createReducer(
     (state, payload) => {
       if (typeof payload === 'function') {
         payload(state)
@@ -50,19 +61,35 @@ export const createStore = model => {
     },
     { type: 'set', path: [] }
   )
+  createActionCreator('set')
 
   const recurseModelSlice = (slice, parentPath) => {
     Object.keys(slice).forEach(key => {
       const value = slice[key]
       const path = [...parentPath, key]
+      const type = path.join('.')
 
-      // console.log({ path, key, value })
+      // console.log({ type, path, key, value })
 
       if (typeof value === 'function') {
-        // value is an action, so add it to actionCreators.
-        createActionReducer(value, { type: path.join('.'), path: parentPath })
+        const method = value.method || 'action'
 
-        // Then delete the value from the defaultState
+        switch (method) {
+          case 'action':
+            createActionCreator(type)
+            break
+
+          case 'thunk':
+            createThunkCreator(value, type)
+            break
+
+          default:
+            break
+        }
+
+        createReducer(value, { type, path: parentPath })
+
+        // Delete the value from the defaultState.
         unset(defaultState, path)
       } else if (isPlainObject(value)) {
         recurseModelSlice(value, path)
@@ -72,8 +99,9 @@ export const createStore = model => {
 
   recurseModelSlice(model, [])
 
-  const store = createReduxStore(rootReducer, defaultState)
+  const store = configureStore({ reducer: rootReducer, preloadedState: defaultState })
   refs.dispatch = store.dispatch
+  refs.getState = store.getState
 
   return Object.assign(store, {
     actions

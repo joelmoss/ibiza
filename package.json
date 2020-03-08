@@ -76,6 +76,7 @@
     "sucrase": "^3.12.1"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^1.2.5",
     "immer": "^6.0.0",
     "lodash": "^4.17.15",
     "react-redux": "^7.2.0",

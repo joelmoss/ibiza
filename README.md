@@ -11,10 +11,12 @@ const store = createStore({
 })
 ```
 
-## Improvemnts on easy-peasy
+## Differences to easy-peasy
 
+- An action can be defined with just a function - no need to wrap it with `action()`.
+- A thunk can change state just like an action.
 - Listeners can update state anywhere in the store.
-- Proxy support.
+- Proxy support?
 
 ## Kudos 🙏
 

@@ -4,3 +4,8 @@ import { useActions } from './useActions'
 import { useReduxContext } from './useReduxContext'
 
 export { Provider, useSelector, createStore, useActions, useReduxContext }
+
+export const thunk = fn => {
+  fn.method = 'thunk'
+  return fn
+}
