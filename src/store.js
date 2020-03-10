@@ -42,7 +42,24 @@ export const createStore = model => {
       const helpers = {
         getState: refs.getState
       }
-      return refs.dispatch(() => fn(actions, payload, helpers))
+      const result = refs.dispatch(() => fn(actions, payload, helpers))
+
+      if (result != null && typeof result === 'object' && typeof result.then === 'function') {
+        console.log(result)
+        return result
+          .then(resolved => {
+            // dispatchSuccess(resolved)
+            return resolved
+          })
+          .catch(err => {
+            console.log(1)
+            // dispatchError(err)
+            // if (err.doNotThrow) return err
+            throw err
+          })
+      }
+
+      return result
     })
   }
 
@@ -72,6 +89,7 @@ export const createStore = model => {
       // console.log({ type, path, key, value })
 
       if (typeof value === 'function') {
+        if (value.constructor.name === 'AsyncFunction') value.method = 'async'
         const method = value.method || 'action'
 
         switch (method) {
@@ -80,6 +98,7 @@ export const createStore = model => {
             break
 
           case 'thunk':
+          case 'async':
             createThunkCreator(value, type)
             break
 
