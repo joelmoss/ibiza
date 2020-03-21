@@ -1,6 +1,8 @@
 import { createStore, thunk } from '../src'
 
 const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resolve(data), ms))
+const rejectAfter = (data, ms) =>
+  new Promise((resolve, reject) => setTimeout(() => reject(data), ms))
 
 describe('thunk', () => {
   test('call other actions/thunks', () => {
@@ -97,7 +99,7 @@ describe('thunk', () => {
     })
   })
 
-  test.only('async', async () => {
+  test('async', async () => {
     // arrange
     const store = createStore({
       createUser: async (actions, payload, { getState }) => {
@@ -106,13 +108,13 @@ describe('thunk', () => {
         })
 
         actions.set({ isLoading: true })
-
         expect(getState().isLoading).toBe(true)
 
         actions.set({
           user: await resolveAfter({ id: 101, username: 'joelmoss' }, 15)
         })
 
+        actions.set({ isLoading: false })
         expect(getState().user).toEqual({
           id: 101,
           username: 'joelmoss'
@@ -127,10 +129,39 @@ describe('thunk', () => {
 
     // assert
     expect(result).toBe('success')
-    expect(store.getState().isLoading).toBe(true)
+    expect(store.getState().isLoading).toBe(false)
     expect(store.getState().user).toEqual({
       id: 101,
       username: 'joelmoss'
     })
+  })
+
+  test.only('async error', async () => {
+    expect.assertions(3)
+
+    // arrange
+    const store = createStore({
+      createUser: async (actions, payload, { getState }) => {
+        actions.set({ isLoading: true })
+        expect(getState().isLoading).toBe(true)
+
+        try {
+          await rejectAfter({ message: 'failed!' }, 15)
+        } catch (error) {
+          actions.set({ isLoading: false })
+          throw error
+        }
+
+        actions.set({ isLoading: false })
+      }
+    })
+
+    // act
+    await expect(store.actions.createUser({ username: 'joelmoss' })).rejects.toEqual({
+      message: 'failed!'
+    })
+
+    // assert
+    expect(store.getState().isLoading).toBe(false)
   })
 })

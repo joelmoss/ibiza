@@ -44,20 +44,20 @@ export const createStore = model => {
       }
       const result = refs.dispatch(() => fn(actions, payload, helpers))
 
-      if (result != null && typeof result === 'object' && typeof result.then === 'function') {
-        console.log(result)
-        return result
-          .then(resolved => {
-            // dispatchSuccess(resolved)
-            return resolved
-          })
-          .catch(err => {
-            console.log(1)
-            // dispatchError(err)
-            // if (err.doNotThrow) return err
-            throw err
-          })
-      }
+      // if (result != null && typeof result === 'object' && typeof result.then === 'function') {
+      // return result
+      //   .then(resolved => {
+      //     // dispatchSuccess(resolved)
+      //     console.log({ resolved })
+      //     return resolved
+      //   })
+      //   .catch(error => {
+      //     console.log({ error })
+      //     // dispatchError(err)
+      //     // if (err.doNotThrow) return err
+      //     throw error
+      //   })
+      // }
 
       return result
     })
