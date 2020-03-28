@@ -4,7 +4,7 @@ import get from 'lodash/get'
 import set from 'lodash/set'
 import unset from 'lodash/unset'
 import forEach from 'lodash/forEach'
-import { createDraft, finishDraft, isDraft } from 'immer'
+import { createDraft, finishDraft } from 'immer'
 
 export const createStore = model => {
   const refs = {}
