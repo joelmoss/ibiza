@@ -71,11 +71,12 @@ test('actions receive local state only', () => {
   store.actions.session.login({ name: 'joel' })
 
   // assert
-  //
-  // FIXME: Jest's `toEqual` throws error when comparing readonly properties.
-  // See https://github.com/facebook/jest/pull/9575
-  expect(store.getState().session.user).toEqual({
-    name: 'joel'
+  expect(store.getState()).toEqual({
+    session: {
+      user: {
+        name: 'joel'
+      }
+    }
   })
 })
 
@@ -111,10 +112,12 @@ test('nested action', () => {
   store.actions.session.settings.setFavouriteColor('blue')
 
   // assert
-  expect(store.getState().session).toEqual({
-    user: undefined,
-    settings: {
-      favouriteColor: 'blue'
+  expect(store.getState()).toEqual({
+    session: {
+      user: undefined,
+      settings: {
+        favouriteColor: 'blue'
+      }
     }
   })
 })
