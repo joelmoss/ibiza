@@ -12,9 +12,22 @@ const store = createStore({
     state.count = state.count + 1
   },
 
+  // ... or wrap your action in a method wrapper if you want to be
+  // explicit. This is exactly the same as simply defining a function.
+  decrement: action(state => {
+    state.count = state.count + 1
+  }),
+
+  // You can nest your state and methods as deep as you like.
   user: {
     firstName: 'Joel',
     lastName: 'Moss',
+
+    // Actions receive the global state, but you can also create an action that receives the local
+    // state relative to the action. Just wrap your action in the localAction method.
+    setFirstName: localAction((state, payload) => {
+      state.firstName = payload
+    }),
 
     // Getter - Create derived state or computed properties.
     fullName: getter(({ user }) => {
@@ -60,23 +73,25 @@ const MyComponent = () => {
   const state = useIbiza()
 
   return (
-    <form onSubmit={() => state.submit()}>
-      <div>Name: {state.user.fullName}</div>
-      <div>Date of Birth: {state.user.dateOfBirth}</div>
-      <div>Count: {state.count}</div>
+    <StoreProvider store={store}>
+      <form onSubmit={() => state.submit()}>
+        <div>Name: {state.user.fullName}</div>
+        <div>Date of Birth: {state.user.dateOfBirth}</div>
+        <div>Count: {state.count}</div>
 
-      <button type="button" onClick={state.increment}>
-        Increment
-      </button>
+        <button type="button" onClick={state.increment}>
+          Increment
+        </button>
 
-      <input type="text" onChange={state.user.age.set} value={state.user.age} />
+        <input type="text" onChange={state.user.age.set} value={state.user.age} />
 
-      <input
-        type="text"
-        onChange={({ target }) => (state.user.dateOfBirth = target.value)}
-        value={state.user.dateOfBirth.raw}
-      />
-    </form>
+        <input
+          type="text"
+          onChange={({ target }) => (state.user.dateOfBirth = target.value)}
+          value={state.user.dateOfBirth.raw}
+        />
+      </form>
+    </StoreProvider>
   )
 }
 ```
@@ -84,9 +99,12 @@ const MyComponent = () => {
 ## Features
 
 - Set state from anywhere! No need to call an action.
-- No need for a wrapping "Provider" component. Thanks to `useMutableSource()` 👏
 - Get state without needing selectors. Just use the state you need, and your components will re-render when that used state is mutated.
 - Set state using regular variable assignment: `state.name = value`.
+
+## Wishlist
+
+- No need for a wrapping "Provider" component. Thanks to `useMutableSource()` 👏
 
 ## Differences to easy-peasy
 

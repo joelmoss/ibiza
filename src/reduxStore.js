@@ -1,4 +1,4 @@
-import { configureStore } from '@reduxjs/toolkit'
+import { createStore as createReduxStore } from 'redux'
 import isPlainObject from 'lodash/isPlainObject'
 import get from 'lodash/get'
 import set from 'lodash/set'
@@ -14,7 +14,7 @@ export const createStore = model => {
       const actionReducer = actionReducers[action.type]
       const draft = createDraft(state)
 
-      if (actionReducer.path.length > 0) {
+      if (action.method === 'localAction' && actionReducer.path.length > 0) {
         actionReducer(get(draft, actionReducer.path), action.payload)
       } else {
         actionReducer(draft, action.payload)
@@ -31,9 +31,9 @@ export const createStore = model => {
     actionReducers[type].path = path
   }
 
-  const createActionCreator = type => {
+  const createActionCreator = (type, method) => {
     set(actions, type, payload => {
-      return refs.dispatch({ type, payload })
+      return refs.dispatch({ type, method, payload })
     })
   }
 
@@ -94,7 +94,8 @@ export const createStore = model => {
 
         switch (method) {
           case 'action':
-            createActionCreator(type)
+          case 'localAction':
+            createActionCreator(type, method)
             break
 
           case 'thunk':
@@ -118,7 +119,7 @@ export const createStore = model => {
 
   recurseModelSlice(model, [])
 
-  const store = configureStore({ reducer: rootReducer, preloadedState: defaultState })
+  const store = createReduxStore(rootReducer, defaultState)
   refs.dispatch = store.dispatch
   refs.getState = store.getState
 

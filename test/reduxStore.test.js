@@ -1,4 +1,4 @@
-import { createStore } from '../src'
+import { createStore, action, localAction } from '../src'
 
 test('store.getState()', () => {
   // arrange
@@ -23,141 +23,149 @@ test('store.getState()', () => {
   })
 })
 
-test('empty object in state', () => {
-  // arrange
-  const model = {
-    todos: {
-      items: {},
-      foo: []
-    },
-    bar: null
-  }
-
-  // act
-  const store = createStore(model)
-
-  // assert
-  expect(store.getState()).toEqual({
-    todos: {
-      items: {},
-      foo: []
-    },
-    bar: null
-  })
-})
-
-test('actions receive local state only', () => {
-  // arrange
-  const model = {
-    session: {
+describe('actions', () => {
+  test('action as plain function', () => {
+    // arrange
+    const model = {
       user: undefined,
       login: (state, payload) => {
         state.user = payload
       }
     }
-  }
 
-  // act
-  const store = createStore(model)
+    // act
+    const store = createStore(model)
 
-  // assert
-  expect(store.getState()).toEqual({
-    session: {
+    // assert
+    expect(store.getState()).toEqual({
       user: undefined
-    }
-  })
+    })
 
-  // act
-  store.actions.session.login({ name: 'joel' })
+    // act
+    store.actions.login({ name: 'joel' })
 
-  // assert
-  expect(store.getState()).toEqual({
-    session: {
+    // assert
+    expect(store.getState()).toEqual({
       user: {
         name: 'joel'
       }
-    }
+    })
   })
-})
 
-test('nested action', () => {
-  // arrange
-  const model = {
-    session: {
+  test('action with method wrapper', () => {
+    // arrange
+    const model = {
       user: undefined,
-      settings: {
-        favouriteColor: 'red',
-        setFavouriteColor: (state, color) => {
-          state.favouriteColor = color
+      login: action((state, payload) => {
+        state.user = payload
+      })
+    }
+
+    // act
+    const store = createStore(model)
+
+    // assert
+    expect(store.getState()).toEqual({
+      user: undefined
+    })
+
+    // act
+    store.actions.login({ name: 'joel' })
+
+    // assert
+    expect(store.getState()).toEqual({
+      user: {
+        name: 'joel'
+      }
+    })
+  })
+
+  test('nested action', () => {
+    // arrange
+    const model = {
+      session: {
+        user: undefined,
+        login: (state, payload) => {
+          state.session.user = payload
         }
+      }
+    }
+
+    // act
+    const store = createStore(model)
+
+    // assert
+    expect(store.getState()).toEqual({
+      session: {
+        user: undefined
+      }
+    })
+
+    // act
+    store.actions.session.login({ name: 'joel' })
+
+    // assert
+    expect(store.getState()).toEqual({
+      session: {
+        user: {
+          name: 'joel'
+        }
+      }
+    })
+  })
+
+  test('nested localAction', () => {
+    // arrange
+    const model = {
+      session: {
+        user: undefined,
+        login: localAction((state, payload) => {
+          state.user = payload
+        })
+      }
+    }
+
+    // act
+    const store = createStore(model)
+
+    // assert
+    expect(store.getState()).toEqual({
+      session: {
+        user: undefined
+      }
+    })
+
+    // act
+    store.actions.session.login({ name: 'joel' })
+
+    // assert
+    expect(store.getState()).toEqual({
+      session: {
+        user: {
+          name: 'joel'
+        }
+      }
+    })
+  })
+
+  test('built-in set action', () => {
+    // arrange
+    const store = createStore({
+      todos: {
+        items: { 1: { text: 'foo' } }
       },
-      login: () => undefined
-    }
-  }
-
-  // act
-  const store = createStore(model)
-
-  // assert
-  expect(store.getState()).toEqual({
-    session: {
-      user: undefined,
-      settings: {
-        favouriteColor: 'red'
+      doSomething: state => {
+        state.todos.items[2] = { text: 'bar' }
       }
-    }
+    })
+
+    // assert
+    expect(Object.keys(store.actions)).toEqual(['set', 'doSomething'])
+
+    // act
+    store.actions.set({ 'todos.count': 1 })
+
+    // assert
+    expect(store.getState().todos.count).toEqual(1)
   })
-
-  // act
-  store.actions.session.settings.setFavouriteColor('blue')
-
-  // assert
-  expect(store.getState()).toEqual({
-    session: {
-      user: undefined,
-      settings: {
-        favouriteColor: 'blue'
-      }
-    }
-  })
-})
-
-test('root action', () => {
-  // arrange
-  const store = createStore({
-    todos: {
-      items: { 1: { text: 'foo' } }
-    },
-    doSomething: state => {
-      state.todos.items[2] = { text: 'bar' }
-    }
-  })
-
-  // act
-  store.actions.doSomething()
-
-  // assert
-  const actual = store.getState().todos.items
-  expect(actual).toEqual({ 1: { text: 'foo' }, 2: { text: 'bar' } })
-})
-
-test('built-in set action', () => {
-  // arrange
-  const store = createStore({
-    todos: {
-      items: { 1: { text: 'foo' } }
-    },
-    doSomething: state => {
-      state.todos.items[2] = { text: 'bar' }
-    }
-  })
-
-  // assert
-  expect(Object.keys(store.actions)).toEqual(['set', 'doSomething'])
-
-  // act
-  store.actions.set({ 'todos.count': 1 })
-
-  // assert
-  expect(store.getState().todos.count).toEqual(1)
 })

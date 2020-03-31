@@ -136,7 +136,7 @@ describe('thunk', () => {
     })
   })
 
-  test.only('async error', async () => {
+  test('async error', async () => {
     expect.assertions(3)
 
     // arrange
