@@ -4,7 +4,7 @@ const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resol
 const rejectAfter = (data, ms) =>
   new Promise((resolve, reject) => setTimeout(() => reject(data), ms))
 
-describe('thunk', () => {
+describe.skip('thunk', () => {
   test('call other actions/thunks', () => {
     // arrange
     const store = createStore({

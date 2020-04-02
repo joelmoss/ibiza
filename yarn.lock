@@ -3424,6 +3424,11 @@ prop-types@^15.6.2, prop-types@^15.7.2:
     object-assign "^4.1.1"
     react-is "^16.8.1"
 
+proxy-compare@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/proxy-compare/-/proxy-compare-1.0.1.tgz#681651e050706492ff5c4d1eac0dc289c4ebb3f7"
+  integrity sha512-Yui9ndDefoBkIisV29BnbO4nWKOkzpf8xmCz/JkOKZI+R1N/Q9BJDLZNfI5/q5uwm87Ep/7IVeBPkBcEvtpHww==
+
 proxy-state-tree@^5.0.0:
   version "5.0.0"
   resolved "https://registry.yarnpkg.com/proxy-state-tree/-/proxy-state-tree-5.0.0.tgz#0f43d10abc5130a4bd5b186585b33b5236d834a3"

@@ -123,6 +123,7 @@ export const createStore = model => {
   refs.dispatch = store.dispatch
   refs.getState = store.getState
 
+  // return store
   return Object.assign(store, {
     actions
   })
