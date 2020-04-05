@@ -60,14 +60,6 @@ const createProxyHandler = () => ({
     return key in target
   },
 
-  set: (target, key, value) => {
-    console.log('set', { target, key, value })
-    // mutated.set(target, value)
-
-    Reflect.set(target, key, value)
-    return true
-  },
-
   ownKeys(target) {
     this.recordUsage(OWN_KEYS_SYMBOL)
 
@@ -79,7 +71,6 @@ export const createProxy = (obj, accessed, proxyCache) => {
   if (!isPlainObject(obj)) return obj
 
   const origObj = obj[GET_ORIGINAL_SYMBOL] // unwrap proxy
-
   if (origObj) obj = origObj
 
   let proxyHandler = proxyCache && proxyCache.get(obj)

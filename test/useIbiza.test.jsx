@@ -338,4 +338,74 @@ describe('useIbiza', () => {
 
     expect(renderedItems).toEqual([0, 1])
   })
+
+  test('builtin set action', () => {
+    const Count = () => {
+      const { state, set } = useIbiza()
+      renderedItems.push(state.count)
+      const onClick = useCallback(() => {
+        set({ count: state.count + 1 })
+      }, [state])
+
+      return (
+        <>
+          <button onClick={onClick}>Increment</button>
+        </>
+      )
+    }
+
+    const App = () => {
+      return (
+        <Provider store={store}>
+          <Count />
+        </Provider>
+      )
+    }
+
+    const { getByRole } = rtl.render(<App />)
+
+    expect(renderedItems).toEqual([0])
+
+    rtl.fireEvent.click(getByRole('button'))
+
+    expect(renderedItems).toEqual([0, 1])
+  })
+
+  test('builtin set action - nested', () => {
+    store = createStore({
+      user: {
+        name: 'Joel'
+      }
+    })
+
+    const Count = () => {
+      const { state, set } = useIbiza()
+      renderedItems.push(state.user.name)
+      const onClick = useCallback(() => {
+        set({ 'user.name': 'Sam' })
+      }, [state])
+
+      return (
+        <>
+          <button onClick={onClick}>Increment</button>
+        </>
+      )
+    }
+
+    const App = () => {
+      return (
+        <Provider store={store}>
+          <Count />
+        </Provider>
+      )
+    }
+
+    const { getByRole } = rtl.render(<App />)
+
+    expect(renderedItems).toEqual(['Joel'])
+
+    rtl.fireEvent.click(getByRole('button'))
+
+    expect(renderedItems).toEqual(['Joel', 'Sam'])
+  })
 })

@@ -1,16 +1,33 @@
-import { useMemo, useRef, useReducer, useDebugValue } from 'react'
+import { useMemo, useRef, useReducer, useEffect, useDebugValue } from 'react'
 import Subscription from 'react-redux/es/utils/Subscription'
 import { useIsomorphicLayoutEffect } from 'react-redux/es/utils/useIsomorphicLayoutEffect'
 
 import { useReduxContext } from './useReduxContext'
 import { createProxy, hasStateChanged } from './stateProxy'
 
-const GET_ORIGINAL_SYMBOL = Symbol()
-const ORIGINAL_OBJECT_PROPERTY = 'o'
+// convert "affected" (WeakMap) to serializable value (array of array of string)
+const affectedToPathList = (state, affected) => {
+  const list = []
+  const walk = (obj, path) => {
+    const used = affected.get(obj)
+    if (used) {
+      used.forEach(key => {
+        walk(obj[key], path ? [...path, key] : [key])
+      })
+    } else if (path) {
+      list.push(path)
+    }
+  }
+  walk(state)
+  return list
+}
 
-const isBuiltinWithoutMutableMethods = value => value instanceof RegExp || value instanceof Number
-const isPrimitive = value => {
-  return value === null || (typeof value !== 'object' && typeof value !== 'function')
+const useAffectedDebugValue = (state, affected) => {
+  const pathList = useRef(null)
+  useEffect(() => {
+    pathList.current = affectedToPathList(state, affected)
+  })
+  useDebugValue(pathList)
 }
 
 export const useIbiza = () => {
@@ -21,20 +38,14 @@ export const useIbiza = () => {
 
   const state = store.getState()
   const latestTracked = useRef(null)
-
-  const mutated = new WeakMap()
   const accessed = new WeakMap()
 
   useIsomorphicLayoutEffect(() => {
-    latestTracked.current = {
-      state,
-      mutated,
-      accessed
-    }
+    latestTracked.current = { state, accessed }
   })
 
   useIsomorphicLayoutEffect(() => {
-    function checkForUpdates(initial = false) {
+    function checkForUpdates() {
       const nextState = store.getState()
 
       if (
@@ -53,13 +64,20 @@ export const useIbiza = () => {
     subscription.onStateChange = checkForUpdates
     subscription.trySubscribe()
 
-    checkForUpdates(true)
+    checkForUpdates()
 
     return () => subscription.tryUnsubscribe()
   }, [store, subscription])
 
+  process.env.NODE_ENV !== 'production' && useAffectedDebugValue(state, accessed)
+
   const proxyCache = useRef(new WeakMap()) // per-hook proxyCache
   const proxy = createProxy(state, accessed, proxyCache.current)
+  const { set } = store.actions
 
-  return { state: proxy, actions: store.actions }
+  return {
+    state: proxy,
+    actions: store.actions,
+    set
+  }
 }
