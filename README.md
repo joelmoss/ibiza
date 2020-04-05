@@ -98,13 +98,12 @@ const MyComponent = () => {
 
 ## Features
 
-- Set state from anywhere! No need to call an action.
 - Get state without needing selectors. Just use the state you need, and your components will re-render when that used state is mutated.
-- Set state using regular variable assignment: `state.name = value`.
 
 ## Wishlist
 
 - No need for a wrapping "Provider" component. Thanks to `useMutableSource()` 👏
+- Set state using regular variable assignment: `state.name = value`.
 
 ## Differences to easy-peasy
 
