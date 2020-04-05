@@ -1,36 +1,16 @@
-import { useMemo, useRef, useReducer, useEffect, useDebugValue } from 'react'
+import { useMemo, useRef, useReducer, useDebugValue } from 'react'
 import Subscription from 'react-redux/es/utils/Subscription'
 import { useIsomorphicLayoutEffect } from 'react-redux/es/utils/useIsomorphicLayoutEffect'
-import { createDeepProxy, isDeepChanged } from 'proxy-compare'
 
 import { useReduxContext } from './useReduxContext'
+import { createProxy, hasStateChanged } from './stateProxy'
 
-// convert "affected" (WeakMap) to serializable value (array of array of string)
-const affectedToPathList = (state, affected) => {
-  const list = []
-  const walk = (obj, path) => {
-    const used = affected.get(obj)
+const GET_ORIGINAL_SYMBOL = Symbol()
+const ORIGINAL_OBJECT_PROPERTY = 'o'
 
-    if (used) {
-      used.forEach(key => walk(obj[key], path ? [...path, key] : [key]))
-    } else if (path) {
-      list.push(path)
-    }
-  }
-
-  walk(state)
-
-  return list
-}
-
-const useAffectedDebugValue = (state, affected) => {
-  const pathList = useRef(null)
-
-  useEffect(() => {
-    pathList.current = affectedToPathList(state, affected)
-  })
-
-  useDebugValue(pathList)
+const isBuiltinWithoutMutableMethods = value => value instanceof RegExp || value instanceof Number
+const isPrimitive = value => {
+  return value === null || (typeof value !== 'object' && typeof value !== 'function')
 }
 
 export const useIbiza = () => {
@@ -40,27 +20,29 @@ export const useIbiza = () => {
   const subscription = useMemo(() => new Subscription(store, contextSub), [store, contextSub])
 
   const state = store.getState()
-  const affected = new WeakMap()
   const latestTracked = useRef(null)
+
+  const mutated = new WeakMap()
+  const accessed = new WeakMap()
 
   useIsomorphicLayoutEffect(() => {
     latestTracked.current = {
       state,
-      affected,
-      cache: new WeakMap()
+      mutated,
+      accessed
     }
   })
 
   useIsomorphicLayoutEffect(() => {
-    function checkForUpdates() {
+    function checkForUpdates(initial = false) {
       const nextState = store.getState()
 
       if (
         latestTracked.current.state !== nextState &&
-        isDeepChanged(
+        hasStateChanged(
           latestTracked.current.state,
           nextState,
-          latestTracked.current.affected,
+          latestTracked.current.accessed,
           latestTracked.current.cache
         )
       ) {
@@ -71,17 +53,13 @@ export const useIbiza = () => {
     subscription.onStateChange = checkForUpdates
     subscription.trySubscribe()
 
-    checkForUpdates()
+    checkForUpdates(true)
 
     return () => subscription.tryUnsubscribe()
   }, [store, subscription])
 
-  process.env.NODE_ENV !== 'production' && useAffectedDebugValue(state, affected)
-
   const proxyCache = useRef(new WeakMap()) // per-hook proxyCache
+  const proxy = createProxy(state, accessed, proxyCache.current)
 
-  return {
-    state: createDeepProxy(state, affected, proxyCache.current),
-    actions: store.actions
-  }
+  return { state: proxy, actions: store.actions }
 }

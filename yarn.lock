@@ -396,6 +396,11 @@
     "@types/yargs" "^15.0.0"
     chalk "^3.0.0"
 
+"@nx-js/observer-util@^4.2.2":
+  version "4.2.2"
+  resolved "https://registry.yarnpkg.com/@nx-js/observer-util/-/observer-util-4.2.2.tgz#faea1bc61936653486d1b5dec7485220991e628d"
+  integrity sha512-9OayX1xkdGjdnsDiO2YdaYJ6aMyCF7/NY4QWVgIgjSAZJ4OX2fD766Ts79hEzBscenQy2DCaSoY8VkguIMB1ZA==
+
 "@sinonjs/commons@^1.7.0":
   version "1.7.1"
   resolved "https://registry.yarnpkg.com/@sinonjs/commons/-/commons-1.7.1.tgz#da5fd19a5f71177a53778073978873964f49acf1"
@@ -2200,11 +2205,6 @@ is-number@^7.0.0:
   resolved "https://registry.yarnpkg.com/is-number/-/is-number-7.0.0.tgz#7535345b896734d5f80c4d06c50955527a14f12b"
   integrity sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng==
 
-is-plain-obj@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/is-plain-obj/-/is-plain-obj-1.1.0.tgz#71a50c8429dfca773c92a390a4a03b39fcd51d3e"
-  integrity sha1-caUMhCnfync8kqOQpKA7OfzVHT4=
-
 is-plain-object@^2.0.3, is-plain-object@^2.0.4:
   version "2.0.4"
   resolved "https://registry.yarnpkg.com/is-plain-object/-/is-plain-object-2.0.4.tgz#2c163b3fafb1b606d9d17928f05c2a1c38e07677"
@@ -3428,13 +3428,6 @@ proxy-compare@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/proxy-compare/-/proxy-compare-1.0.1.tgz#681651e050706492ff5c4d1eac0dc289c4ebb3f7"
   integrity sha512-Yui9ndDefoBkIisV29BnbO4nWKOkzpf8xmCz/JkOKZI+R1N/Q9BJDLZNfI5/q5uwm87Ep/7IVeBPkBcEvtpHww==
-
-proxy-state-tree@^5.0.0:
-  version "5.0.0"
-  resolved "https://registry.yarnpkg.com/proxy-state-tree/-/proxy-state-tree-5.0.0.tgz#0f43d10abc5130a4bd5b186585b33b5236d834a3"
-  integrity sha512-7ikm/7p29pab3v6llQ9JR2+ZhNU7ho7JYD9vSR+0RXa9Te3p1KsfxlSuq+eS75x2+8Tx9FFHyV/x9Mrk8kWMHA==
-  dependencies:
-    is-plain-obj "^1.1.0"
 
 psl@^1.1.28:
   version "1.8.0"

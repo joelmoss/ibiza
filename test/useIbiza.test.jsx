@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable react/display-name */
-import React from 'react'
+import React, { useCallback } from 'react'
 import * as rtl from '@testing-library/react'
 import { renderHook, act } from '@testing-library/react-hooks'
 
@@ -21,46 +21,128 @@ describe('useIbiza', () => {
     renderedItems = []
   })
 
-  test('read state', () => {
-    const { result } = renderHook(() => useIbiza(), {
-      wrapper: ({ children }) => <Provider store={store}>{children}</Provider>
-    })
+  it('reads state', () => {
+    const App = () => {
+      const { state } = useIbiza()
+      return <div data-testid="count">{state.count}</div>
+    }
 
-    expect(result.current.state).toEqual({ count: 0 })
+    const { getByTestId } = rtl.render(
+      <Provider store={store}>
+        <App />
+      </Provider>
+    )
+
+    expect(getByTestId('count')).toHaveTextContent(0)
   })
 
-  test('call action', () => {
-    const { result } = renderHook(() => useIbiza(), {
-      wrapper: ({ children }) => <Provider store={store}>{children}</Provider>
-    })
+  it('re-renders on shallow state change from an action', () => {
+    const App = () => {
+      const { state, actions } = useIbiza()
+      renderedItems.push(state.count)
 
-    expect(result.current.state).toEqual({ count: 0 })
+      return (
+        <>
+          <div data-testid="count">{state.count}</div>
+          <button onClick={actions.increment}>increment</button>
+        </>
+      )
+    }
 
-    act(() => {
-      store.actions.increment()
-    })
+    const { getByTestId, getByRole } = rtl.render(
+      <Provider store={store}>
+        <App />
+      </Provider>
+    )
 
-    expect(result.current.state).toEqual({ count: 1 })
+    expect(renderedItems).toEqual([0])
+
+    rtl.fireEvent.click(getByRole('button'))
+
+    expect(renderedItems).toEqual([0, 1])
+    expect(getByTestId('count')).toHaveTextContent(1)
   })
 
-  test('call action without state change or re-render', () => {
-    const Comp = () => {
-      const value = useIbiza().state.count + 1
-      renderedItems.push(value)
+  it('re-renders on nested state change from an action', () => {
+    store = createStore({
+      nested: {
+        count: 0
+      },
+      increment: s => {
+        s.nested.count = s.nested.count + 1
+      }
+    })
+
+    const App = () => {
+      const { state } = useIbiza()
+      renderedItems.push(state.nested.count)
       return <div />
     }
 
     rtl.render(
       <Provider store={store}>
-        <Comp />
+        <App />
       </Provider>
     )
 
-    expect(renderedItems).toEqual([1])
+    expect(renderedItems).toEqual([0])
+
+    store.actions.increment()
+
+    expect(renderedItems).toEqual([0, 1])
+  })
+
+  it('does not re-render on change of unused state in an action', () => {
+    store = createStore({
+      usedCount: 10,
+      unusedCount: 20,
+      nested: {
+        count: 1
+      },
+      incrementUnusedCount: s => {
+        s.unusedCount = s.unusedCount + 1
+      }
+    })
+
+    const App = () => {
+      const { state } = useIbiza()
+      renderedItems.push(state.usedCount)
+
+      return <div />
+    }
+
+    rtl.render(
+      <Provider store={store}>
+        <App />
+      </Provider>
+    )
+
+    expect(renderedItems).toEqual([10])
+
+    store.actions.incrementUnusedCount()
+
+    expect(renderedItems).toEqual([10])
+  })
+
+  it('does not re-render on action with no state change', () => {
+    const App = () => {
+      const { state } = useIbiza()
+      renderedItems.push(state.count)
+
+      return <div />
+    }
+
+    rtl.render(
+      <Provider store={store}>
+        <App />
+      </Provider>
+    )
+
+    expect(renderedItems).toEqual([0])
 
     store.actions.noop()
 
-    expect(renderedItems).toEqual([1])
+    expect(renderedItems).toEqual([0])
   })
 
   describe('lifeycle interactions', () => {
@@ -188,7 +270,7 @@ describe('useIbiza', () => {
     expect(renderedItems.length).toBe(1)
   })
 
-  it('only re-render used prop is changed', () => {
+  it('only re-renders when used prop is changed', () => {
     store = createStore({
       count1: 0,
       count2: 9,
@@ -223,11 +305,19 @@ describe('useIbiza', () => {
     expect(renderedItems).toEqual([0, 9, 1])
   })
 
-  test.skip('update?', () => {
+  test.skip('variable state setting', () => {
     const Count = () => {
-      const { count } = useIbiza()
+      const { state } = useIbiza()
+      renderedItems.push(state.count)
+      const onClick = useCallback(() => {
+        state.count = state.count + 1
+      }, [state])
 
-      return <div data-testid="count">Count: {count}</div>
+      return (
+        <>
+          <button onClick={onClick}>Increment</button>
+        </>
+      )
     }
 
     const App = () => {
@@ -238,8 +328,14 @@ describe('useIbiza', () => {
       )
     }
 
-    const { getByTestId } = render(<App />)
+    const { getByRole } = rtl.render(<App />)
 
-    expect(getByTestId('count')).toHaveTextContent('Count: 0')
+    expect(renderedItems).toEqual([0])
+
+    rtl.fireEvent.click(getByRole('button'))
+
+    console.log(store.getState())
+
+    expect(renderedItems).toEqual([0, 1])
   })
 })
