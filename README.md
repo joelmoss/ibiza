@@ -60,7 +60,7 @@ const store = createStore({
     state.isLoading = true
 
     try {
-      state.result = await fetch('/...', { method: 'post' })
+      state.result = await fetch(...)
     } catch (error) {
       state.error = error
     } finally {

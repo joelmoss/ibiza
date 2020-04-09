@@ -1,10 +1,9 @@
 import { Provider } from 'react-redux'
 import { createStore } from './reduxStore'
-import { useActions } from './useActions'
 import { useIbiza } from './useIbiza'
 import { useReduxContext } from './useReduxContext'
 
-export { Provider, createStore, useActions, useIbiza, useReduxContext }
+export { Provider, createStore, useIbiza, useReduxContext }
 
 export const thunk = fn => {
   fn.method = 'thunk'

@@ -1,10 +1,11 @@
-import { createStore as createReduxStore } from 'redux'
+import { createStore as createReduxStore, applyMiddleware } from 'redux'
 import isPlainObject from 'lodash/isPlainObject'
 import get from 'lodash/get'
 import set from 'lodash/set'
 import unset from 'lodash/unset'
 import forEach from 'lodash/forEach'
 import { createDraft, finishDraft } from 'immer'
+import thunkMiddleware from './middleware/thunk'
 
 export const createStore = model => {
   const refs = {}
@@ -15,9 +16,9 @@ export const createStore = model => {
       const draft = createDraft(state)
 
       if (action.method === 'localAction' && actionReducer.path.length > 0) {
-        actionReducer(get(draft, actionReducer.path), action.payload)
+        actionReducer(get(draft, actionReducer.path), action.payload, actions)
       } else {
-        actionReducer(draft, action.payload)
+        actionReducer(draft, action.payload, actions)
       }
 
       return finishDraft(draft)
@@ -119,7 +120,7 @@ export const createStore = model => {
 
   recurseModelSlice(model, [])
 
-  const store = createReduxStore(rootReducer, defaultState)
+  const store = createReduxStore(rootReducer, defaultState, applyMiddleware(thunkMiddleware))
   refs.dispatch = store.dispatch
   refs.getState = store.getState
 
