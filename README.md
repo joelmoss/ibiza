@@ -3,6 +3,70 @@
 ## Usage
 
 ```javascript
+// Store is global and defined in the ibiza module. Just import it and read from and write to it as
+// you like.
+import { useIbiza } from 'ibiza'
+
+store.user = {
+  name: 'joel',
+
+  get fullName() {
+    return this.name
+  },
+
+  set fullName(value) {
+    const [firstName, lastName] = value.split(' ')
+    this.firstName = firstName
+    this.lastName = lastName
+  },
+
+  partner: {
+    name: 'Sam',
+
+    toSentence() {
+      return `${parent.name}'s partner is ${this.name}` // or you can use `root` to access the state root
+    }
+  },
+
+  // TBD...
+  'dateOfBirth.toDate': function () {
+    return new Date(this.dateOfBirth)
+  }
+}
+
+// Read and write state with initial state
+const MyComponent = () => {
+  const state = useIbiza({ user: { name: 'Joel' } })
+  return <div>{state.user.name}</div>
+}
+
+// Read and write state from all state (root)
+const MyComponent = () => {
+  const state = useIbiza()
+  return <div>{state.user.name}</div>
+}
+
+// Read and write from a state slice
+const MyComponent = () => {
+  const state = useIbiza('user')
+  return <div>{state.name}</div>
+}
+
+// Read and write from a state slice using context
+const ParentComponent = () => {
+  return (
+    <IbizaProvider value="user">
+      <ChildComponent />
+    </IbizaProvider>
+  )
+}
+const ChildComponent = () => {
+  const state = useIbiza()
+  return <>{state.name}</>
+}
+```
+
+```javascript
 const store = createStore({
   count: 0,
 
