@@ -1,6 +1,10 @@
-import observable from '../src/observable'
+import observable, { subscribers } from '../src/observable'
 
 describe('observable', () => {
+  beforeEach(() => {
+    subscribers.clear()
+  })
+
   it('returns a proxy when no argument is provided', () => {
     const obs = observable()
 
@@ -24,8 +28,8 @@ describe('observable', () => {
 
   it('returns the same proxy when called repeatedly with the same argument', () => {
     const obj = { prop: 'value' }
-    const obs1 = observable(obj)
-    const obs2 = observable(obj)
+    const obs1 = observable(obj, '', null)
+    const obs2 = observable(obj, '', null)
 
     expect(obs1).toBe(obs2)
   })
@@ -35,7 +39,7 @@ describe('observable', () => {
     const obj = { prop: 'value', items: [1, 2], 5: 2 }
     const obs = observable(obj, '', null, { onGet })
 
-    obs.toJSON
+    obs.toString
     obs.prop
     obs.items
     obs[5]
@@ -53,20 +57,43 @@ describe('observable', () => {
     expect(onGet).toBeCalledTimes(1)
   })
 
-  it('accepts an onSet callback', () => {
-    const onSet = jest.fn()
-    const obj = { prop: 'value' }
+  describe('subscription', () => {
+    it('update existing prop', () => {
+      const onSet = jest.fn()
+      subscribers.add(onSet)
+      const obj = { prop: 'value' }
 
-    const obs = observable(obj, '', null, { onSet })
+      const obs = observable(obj)
 
-    obs.prop = 'new value'
-    expect(onSet).toBeCalledTimes(1)
+      obs.prop = 'new value'
+      expect(onSet).toBeCalledTimes(1)
+    })
+
+    it('set new prop', () => {
+      const onSet = jest.fn()
+      subscribers.add(onSet)
+      const obj = { prop1: 'value1' }
+
+      const obs = observable(obj)
+
+      obs.prop2 = 'value2'
+      expect(onSet).toBeCalledTimes(1)
+    })
+
+    test('push to an array', () => {
+      const onSet = jest.fn()
+      subscribers.add(onSet)
+      const obs = observable([])
+
+      obs.push(1)
+
+      expect(onSet).toBeCalledTimes(1)
+    })
   })
 
   describe('nested object', () => {
-    const obj = { prop1: 'value1', nested: { prop2: 'value2' } }
-
     it('returns a proxy', () => {
+      const obj = { prop1: 'value1', nested: { prop2: 'value2' } }
       const obs = observable(obj)
 
       expect(obs.nested.isProxy).toBe(true)
@@ -81,10 +108,36 @@ describe('observable', () => {
     })
 
     it('returns the same proxy when called repeatedly with the same argument', () => {
-      const obs1 = observable(obj)
-      const obs2 = observable(obj)
+      const proxyCache = new WeakMap()
+      const obj = { prop1: 'value1', nested: { prop2: 'value2' } }
+      const obs1 = observable(obj, '', proxyCache)
+      const obs2 = observable(obj, '', proxyCache)
 
       expect(obs1.nested).toBe(obs2.nested)
+    })
+
+    describe('subscriptions', () => {
+      test('define a new prop', () => {
+        const obj = { prop1: 'value1', nested: { prop2: 'value2' } }
+        const onSet = jest.fn()
+        subscribers.add(onSet)
+        const obs = observable(obj)
+
+        obs.nested.prop3 = 'value3'
+
+        expect(onSet).toBeCalledTimes(1)
+      })
+
+      test('push to an array', () => {
+        const obj = { nested: { prop: [] } }
+        const onSet = jest.fn()
+        subscribers.add(onSet)
+        const obs = observable(obj)
+
+        obs.nested.prop.push(1)
+
+        expect(onSet).toBeCalledTimes(1)
+      })
     })
   })
 })

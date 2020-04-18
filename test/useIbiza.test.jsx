@@ -4,7 +4,7 @@ import React from 'react'
 import { render, fireEvent } from '@testing-library/react'
 import { renderHook, act as hookAct } from '@testing-library/react-hooks'
 
-import { useIbiza, reset } from '../src'
+import { useIbiza, reset, unwrap } from '../src'
 
 describe('useIbiza', () => {
   let renderedItems = []
@@ -44,6 +44,24 @@ describe('useIbiza', () => {
     expect(result.current).toEqual({ count1: 0, count2: 1, user: { name: 'Joel' } })
   })
 
+  it('reads nested state', () => {
+    const { result } = renderHook(() => useIbiza({ nested: { count: 0 } }))
+
+    expect(result.current).toEqual({ nested: { count: 0 } })
+  })
+
+  it('reads null props', () => {
+    const App = () => {
+      const state = useIbiza({ prop: null })
+      renderedItems.push(state.prop)
+      return <div />
+    }
+
+    render(<App />)
+
+    expect(renderedItems).toEqual([null])
+  })
+
   it('sets state', () => {
     const { result } = renderHook(() => useIbiza({ count: 0 }))
 
@@ -53,6 +71,92 @@ describe('useIbiza', () => {
     })
 
     expect(result.current).toEqual({ count: 1, user: { name: 'Joel' } })
+  })
+
+  it('can set nested state', () => {
+    const { result } = renderHook(() => useIbiza())
+
+    hookAct(() => {
+      result.current.nested = { count: 1 }
+    })
+
+    expect(result.current).toEqual({ nested: { count: 1 } })
+  })
+
+  it('can change state in functions', () => {
+    const { result } = renderHook(() =>
+      useIbiza({
+        count: 0,
+        increment(state) {
+          state.count++
+        }
+      })
+    )
+
+    hookAct(() => {
+      result.current.increment()
+    })
+
+    expect(result.current.count).toBe(1)
+  })
+
+  it('functions accept a payload', () => {
+    const { result } = renderHook(() =>
+      useIbiza({
+        count: 0,
+        incrementBy(state, payload) {
+          state.count = state.count + payload
+        }
+      })
+    )
+
+    hookAct(() => {
+      result.current.incrementBy(3)
+    })
+
+    expect(result.current.count).toBe(3)
+  })
+
+  it('should not re-render when using state in a function', () => {
+    const App = () => {
+      const { increment } = useIbiza({
+        count: 0,
+        increment: state => {
+          state.count++
+        }
+      })
+
+      renderedItems.push(0)
+      return <button onClick={() => increment()} />
+    }
+
+    const { getByRole } = render(<App />)
+
+    expect(renderedItems).toEqual([0])
+
+    fireEvent.click(getByRole('button'))
+
+    expect(renderedItems).toEqual([0])
+  })
+
+  it('functions can call other functions', () => {
+    const { result } = renderHook(() =>
+      useIbiza({
+        count: 0,
+        incrementBy(state, payload) {
+          state.count = state.count + payload
+        },
+        increment(state) {
+          state.incrementBy(3)
+        }
+      })
+    )
+
+    hookAct(() => {
+      result.current.increment()
+    })
+
+    expect(result.current.count).toBe(3)
   })
 
   it('re-renders on changed used state', () => {
@@ -69,6 +173,22 @@ describe('useIbiza', () => {
     fireEvent.click(getByRole('button'))
 
     expect(renderedItems).toEqual([0, 1])
+  })
+
+  it('re-renders on changed array state', () => {
+    const App = () => {
+      const state = useIbiza({ items: [1] })
+      renderedItems.push(unwrap(state.items).slice())
+      return <button onClick={() => state.items.push(2)} />
+    }
+
+    const { getByRole } = render(<App />)
+
+    expect(renderedItems).toEqual([[1]])
+
+    fireEvent.click(getByRole('button'))
+
+    expect(renderedItems).toEqual([[1], [1, 2]])
   })
 
   it('does not re-render on changed un-used state', () => {
@@ -101,5 +221,41 @@ describe('useIbiza', () => {
     fireEvent.click(getByRole('button'))
 
     expect(renderedItems).toEqual([0])
+  })
+
+  it('re-renders used component from change in other', () => {
+    const App = () => {
+      useIbiza({ isValid: false })
+      renderedItems.push(['app'])
+
+      return (
+        <>
+          <Child1 />
+          <Child2 />
+        </>
+      )
+    }
+
+    // State changed here
+    const Child1 = () => {
+      const state = useIbiza()
+      renderedItems.push({ child1: unwrap(state).isValid })
+      return <button onClick={() => (state.isValid = true)} />
+    }
+
+    // State used here
+    const Child2 = () => {
+      const state = useIbiza()
+      renderedItems.push({ child2: state.isValid })
+      return <div />
+    }
+
+    const { getByRole } = render(<App />)
+
+    expect(renderedItems).toEqual([['app'], { child1: false }, { child2: false }])
+
+    fireEvent.click(getByRole('button'))
+
+    expect(renderedItems).toEqual([['app'], { child1: false }, { child2: false }, { child2: true }])
   })
 })

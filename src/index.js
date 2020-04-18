@@ -1,9 +1,9 @@
-import { useRef, useEffect, useLayoutEffect, useReducer, useCallback } from 'react'
-import observable from './observable'
-import { forEach, set, get } from 'lodash'
+import { useRef, useEffect, useLayoutEffect, useReducer, useCallback, useDebugValue } from 'react'
+import observable, { TARGET, subscribers } from './observable'
+import { nth, forEach, isArray, set, get } from 'lodash'
 
 let store = {}
-export const observers = new Set()
+export const unwrap = proxy => proxy[TARGET] || proxy
 
 // Returns the whole of the store state (default), or a slice of the state if a state path is given.
 // Any mutations to the returned state will be observed and tracked, and will result in a re-render.
@@ -13,8 +13,10 @@ export const observers = new Set()
 export const useIbiza = (selectorPathOrInitialState, options = {}) => {
   const name = useRef(options.name)
 
+  useDebugValue(name.current ? name.current : '[unknown]')
+
   const debug = useCallback((...args) => {
-    name.current && console.debug('useIbiza', `[${name.current}]`, ...args)
+    name.current && console.log('useIbiza', `[${name.current}]`, ...args)
   }, [])
 
   debug(selectorPathOrInitialState)
@@ -26,33 +28,53 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
   const [, forceRender] = useReducer(s => s + 1, 0)
   const observedPathsRef = useRef([])
   const observableRef = useRef()
+  const proxyCache = useRef(new WeakMap()) // per-hook proxyCache
 
   const onGet = useCallback(({ target, key, path }) => {
     if (observedPathsRef.current.includes(path)) return
 
-    debug('onGet', { target, key, path })
+    debug('onGet', { key, target, path })
 
+    // Add the used path to the observed paths.
     observedPathsRef.current.push(path)
+
+    // Subscribe to changes.
+    subscribers.add(onSet)
   }, [])
 
-  const onSet = useCallback(({ target, key, value, path }) => {
-    if (observedPathsRef.current.includes(path)) {
-      debug('onSet', { target, key, value, path })
-
-      target[key] !== value && forceRender()
+  const onSet = useCallback(({ target, key, previous, value, path }) => {
+    // If target is an array, find the parent path and use that to check if it's used.
+    if (isArray(target)) {
+      const parentPath = nth(path.split('.'), -2)
+      if (parentPath) {
+        path = parentPath
+      }
     }
+
+    // debug('pre:onSet', key, target, path, observedPathsRef.current)
+    if (observedPathsRef.current.includes(path)) {
+      debug('onSet', { key, target, previous, value, path })
+
+      forceRender()
+    }
+  }, [])
+
+  const onApply = useCallback(({ target, argumentsList, path }) => {
+    debug('onApply', { target, argumentsList, path })
+
+    // Functions should be able to read state without fear of the get being trapped by the proxy. So
+    // we return a new un-cached observable here without the onGet callback.
+    const state = observable(store, path, false, { onApply })
+    return target(state, ...argumentsList)
   }, [])
 
   // Merge any initialState by path, then delete it so we don't use it again.
   if (initialState.current) {
-    forEach(initialState.current, (v, k) => {
-      set(store, k, v)
-    })
+    forEach(initialState.current, (v, k) => set(store, k, v))
 
     initialState.current = null
   }
 
-  const proxyCache = useRef(new WeakMap()) // per-hook proxyCache
   if (!observableRef.current) {
     const state = selectorPath.current ? get(store, selectorPath.current) : store
 
@@ -65,9 +87,14 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
 
     observableRef.current = observable(state, selectorPath.current, proxyCache.current, {
       onGet,
-      onSet
+      onSet,
+      onApply
     })
   }
+
+  useIsomorphicLayoutEffect(() => {
+    return () => subscribers.delete(onSet)
+  }, [])
 
   return observableRef.current
 }
