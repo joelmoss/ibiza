@@ -1,9 +1,10 @@
 import { useRef, useEffect, useLayoutEffect, useReducer, useCallback, useDebugValue } from 'react'
-import observable, { TARGET, subscribers } from './observable'
+import observable, { subscribers } from './observable'
+import { devTool, devToolExtension, initDevTools } from './devtools'
+import { store, unwrap, reset } from './store'
 import { nth, forEach, isArray, set, get } from 'lodash'
 
-let store = {}
-export const unwrap = proxy => proxy[TARGET] || proxy
+export { initDevTools, unwrap, reset, store }
 
 // Returns the whole of the store state (default), or a slice of the state if a state path is given.
 // Any mutations to the returned state will be observed and tracked, and will result in a re-render.
@@ -19,7 +20,7 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
     name.current && console.log('useIbiza', `[${name.current}]`, ...args)
   }, [])
 
-  debug(selectorPathOrInitialState)
+  debug('init', selectorPathOrInitialState)
 
   // Builds the selectedPath and initialState variables from the selectedPathOrInitialState.
   const initialState = useRef(getInitialState(selectorPathOrInitialState))
@@ -30,43 +31,57 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
   const observableRef = useRef()
   const proxyCache = useRef(new WeakMap()) // per-hook proxyCache
 
-  const onGet = useCallback(({ target, key, path }) => {
-    if (observedPathsRef.current.includes(path)) return
+  const onGet = useCallback(
+    ({ target, key, path }) => {
+      if (observedPathsRef.current.includes(path)) return
 
-    debug('onGet', { key, target, path })
+      // Add the used path to the observed paths.
+      observedPathsRef.current.push(path)
 
-    // Add the used path to the observed paths.
-    observedPathsRef.current.push(path)
+      devTool && devTool.send({ type: 'GET', key, target, path }, unwrap())
+      debug('onGet', { key, target, path })
 
-    // Subscribe to changes.
-    subscribers.add(onSet)
-  }, [])
+      // Subscribe to changes.
+      subscribers.add(onSet)
+    },
+    [subscribers, observedPathsRef, devTool]
+  )
 
-  const onSet = useCallback(({ target, key, previous, value, path }) => {
-    // If target is an array, find the parent path and use that to check if it's used.
-    if (isArray(target)) {
-      const parentPath = nth(path.split('.'), -2)
-      if (parentPath) {
-        path = parentPath
+  const onSet = useCallback(
+    ({ target, key, previous, value, path }) => {
+      // If target is an array, find the parent path and use that to check if it's used.
+      if (isArray(target)) {
+        const parentPath = nth(path.split('.'), -2)
+        if (parentPath) {
+          path = parentPath
+        }
       }
-    }
 
-    // debug('pre:onSet', key, target, path, observedPathsRef.current)
-    if (observedPathsRef.current.includes(path)) {
-      debug('onSet', { key, target, previous, value, path })
+      debug('pre:onSet', { key, target, path, paths: observedPathsRef.current })
 
-      forceRender()
-    }
-  }, [])
+      if (observedPathsRef.current.includes(path)) {
+        devTool && devTool.send({ type: 'SET', key, target, previous, value, path }, unwrap())
+        debug('onSet', { key, target, previous, value, path })
 
-  const onApply = useCallback(({ target, argumentsList, path }) => {
-    debug('onApply', { target, argumentsList, path })
+        forceRender()
+      }
+    },
+    [observedPathsRef, devTool]
+  )
 
-    // Functions should be able to read state without fear of the get being trapped by the proxy. So
-    // we return a new un-cached observable here without the onGet callback.
-    const state = observable(store, path, false, { onApply })
-    return target(state, ...argumentsList)
-  }, [])
+  const onApply = useCallback(
+    ({ target, thisArg, argumentsList, path }) => {
+      devTool && devTool.send({ type: 'APPLY', target, path }, unwrap())
+      debug('onApply', { target, path })
+
+      // Functions should be able to read state without fear of the get being trapped by the proxy. So
+      // we return a new un-cached observable here without the onGet callback.
+      const state = observable(store, '', false, { onApply })
+
+      return Reflect.apply(target, thisArg, [state, ...argumentsList])
+    },
+    [store, devTool]
+  )
 
   // Merge any initialState by path, then delete it so we don't use it again.
   if (initialState.current) {
@@ -87,20 +102,18 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
 
     observableRef.current = observable(state, selectorPath.current, proxyCache.current, {
       onGet,
-      onSet,
       onApply
     })
   }
 
   useIsomorphicLayoutEffect(() => {
-    return () => subscribers.delete(onSet)
-  }, [])
+    return () => {
+      subscribers.delete(onSet)
+      devToolExtension && devToolExtension.disconnect()
+    }
+  }, [devToolExtension, subscribers, onSet])
 
   return observableRef.current
-}
-
-export const reset = () => {
-  store = {}
 }
 
 const useIsomorphicLayoutEffect =

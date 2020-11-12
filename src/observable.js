@@ -1,7 +1,6 @@
 import { compact } from 'lodash'
 
-export const TARGET = Symbol('target')
-const PROXY_TARGET = Symbol('ProxyTarget')
+import { TARGET } from './store'
 
 export const subscribers = new Set()
 export const pathCache = new WeakMap()
@@ -31,15 +30,13 @@ const observable = (obj = {}, path, proxyCache, callbacks = {}) => {
   return proxy
 }
 
-const createHandler = (proxyCache, { onGet, onSet, onApply }) => {
+const createHandler = (proxyCache, { onGet, onApply }) => {
   return {
     get: (target, key, receiver) => {
       if (key === TARGET) return target
       if (key === 'isProxy') return true
 
       const result = Reflect.get(target, key, receiver)
-
-      // console.log(key, key in target, typeof result)
 
       // Ignore well known symbols. These symbols are frequently retrieved in low level
       // JavaScript under the hood. Also, ignore any non-own properties.
@@ -50,9 +47,7 @@ const createHandler = (proxyCache, { onGet, onSet, onApply }) => {
         return result
       }
 
-      const path = compact([pathCache.get(target), key]).join('.')
-
-      // console.log('pre:onGet', { key, target, path })
+      // console.log('pre:onGet', { key, target })
 
       // Preserve invariants
       const descriptor = getOwnPropertyDescriptor(target, key)
@@ -62,8 +57,11 @@ const createHandler = (proxyCache, { onGet, onSet, onApply }) => {
       }
 
       // Functions should be observable so we can allow them to change state.
-      if (typeof result === 'function') return observable(result, path, proxyCache, { onApply })
+      if (typeof result === 'function') {
+        return observable(result, pathCache.get(target), proxyCache, { onApply })
+      }
 
+      const path = compact([pathCache.get(target), key]).join('.')
       onGet && onGet({ target, key, path, receiver })
 
       // If result is an object, then it's nested and needs to be proxied - Proxy ignores nested
@@ -71,7 +69,6 @@ const createHandler = (proxyCache, { onGet, onSet, onApply }) => {
       if (typeof result === 'object') {
         return observable(result, path, proxyCache, {
           onGet,
-          onSet,
           onApply
         })
       }
@@ -81,7 +78,7 @@ const createHandler = (proxyCache, { onGet, onSet, onApply }) => {
 
     defineProperty: (target, key, descriptor) => {
       let result = true
-      // console.log('onDefineProperty', { key, target, descriptor })
+      console.log('onDefineProperty', { key, target, descriptor })
 
       if (!isSameDescriptor(descriptor, getOwnPropertyDescriptor(target, key))) {
         result = Reflect.defineProperty(target, key, descriptor)
@@ -118,7 +115,7 @@ const createHandler = (proxyCache, { onGet, onSet, onApply }) => {
       const isChanged = !(key in target) || !Object.is(previous, value)
       const path = compact([pathCache.get(target), key]).join('.')
 
-      // console.log('pre:onSet', { key, target, previous, value, receiver, path, isChanged })
+      // console.log('pre:onSet', { key, target, previous, value, receiver, path, isChanged, result })
 
       isChanged &&
         result &&
@@ -128,15 +125,13 @@ const createHandler = (proxyCache, { onGet, onSet, onApply }) => {
     },
 
     apply: onApply
-      ? (target, thisArg, argumentsList) => {
-          // console.log('pre:onApply', { target })
-
-          return onApply({
+      ? (target, thisArg, argumentsList) =>
+          onApply({
             target,
+            thisArg,
             argumentsList,
             path: compact([pathCache.get(target)]).join('.')
           })
-        }
       : undefined
   }
 }
