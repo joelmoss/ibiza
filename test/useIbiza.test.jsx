@@ -1,12 +1,14 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable react/display-name */
-import React from 'react'
+import React, { useCallback } from 'react'
 import ReactDOM from 'react-dom'
 import { render, act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderHook, act as hookAct } from '@testing-library/react-hooks'
 import { perf, wait } from 'react-performance-testing'
+import { merge, mergeWith } from 'lodash'
 
 import { useIbiza, reset, unwrap, getState } from '../src'
+import State from 'sucrase/dist/parser/tokenizer/state'
 
 let renderedItems = []
 const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resolve(data), ms))
@@ -69,11 +71,25 @@ it('can use a slice of the state', () => {
   expect(hook2.result.current).toEqual({ count: 1 })
 })
 
-it('merges initial state recursively by key/path', () => {
-  renderHook(() => useIbiza({ count1: 0, count2: 0 }))
-  const { result } = renderHook(() => useIbiza({ count2: 1, 'user.name': 'Joel' }))
+it('merges initial with existing state', () => {
+  renderHook(() =>
+    useIbiza({
+      count1: 0,
+      count2: 0,
+      get fullName() {
+        return 'Joel Moss'
+      }
+    })
+  )
+  const { result } = renderHook(() => useIbiza({ count2: 1, user: { name: 'Joel' } }))
 
-  expect(result.current).toEqual({ count1: 0, count2: 1, user: { name: 'Joel' } })
+  expect(Object.getOwnPropertyDescriptor(result.current, 'fullName').get).toBeDefined()
+  expect(result.current).toEqual({
+    count1: 0,
+    count2: 1,
+    fullName: 'Joel Moss',
+    user: { name: 'Joel' }
+  })
 })
 
 it('reads nested state', () => {
@@ -125,9 +141,7 @@ it('can change state in functions', () => {
     })
   )
 
-  hookAct(() => {
-    result.current.increment()
-  })
+  hookAct(() => void result.current.increment())
 
   expect(result.current.count).toBe(1)
 })
@@ -142,14 +156,77 @@ it('functions accept a payload', () => {
     })
   )
 
-  hookAct(() => {
-    result.current.incrementBy(3)
-  })
+  hookAct(() => void result.current.incrementBy(3))
 
   expect(result.current.count).toBe(3)
 })
 
-it('should not re-render when using state in a function', () => {
+it('can return derived state from a function', async () => {
+  const App = () => {
+    const state = useIbiza({
+      count1: 0,
+      count2: 1,
+      totalCount: state => {
+        return state.count1 + state.count2
+      }
+    })
+
+    const onClick = useCallback(() => {
+      state.count1 = 1
+    }, [])
+
+    return (
+      <>
+        <h1>Total is {state.totalCount()}</h1>
+        <button onClick={onClick} />
+      </>
+    )
+  }
+
+  const { renderCount } = perf(React)
+  render(<App />)
+
+  screen.getByText('Total is 1')
+
+  fireEvent.click(screen.getByRole('button'))
+
+  // Because totalCount is a function, the component will not rerender.
+  await screen.findByText('Total is 1')
+
+  await wait(() => expect(renderCount.current.App.value).toBe(1))
+})
+
+it('getter', async () => {
+  const App = () => {
+    const state = useIbiza({
+      firstName: 'Joel',
+      get name() {
+        return `${this.firstName} Moss`
+      }
+    })
+
+    return (
+      <>
+        <h1>Name is {state.name}</h1>
+        <button onClick={() => void (state.firstName = 'Bob')}>click</button>
+      </>
+    )
+  }
+
+  const { renderCount } = perf(React)
+  render(<App />)
+
+  screen.getByText('Name is Joel Moss')
+
+  fireEvent.click(screen.getByRole('button'))
+
+  await screen.findByText('Name is Bob Moss')
+  await wait(() => expect(renderCount.current.App.value).toBe(2))
+})
+
+it.todo('using ++/-- operators on state should not re-render if unused')
+
+it('should not re-render when using state in a function', async () => {
   const App = () => {
     const { increment } = useIbiza({
       count: 0,
@@ -162,6 +239,7 @@ it('should not re-render when using state in a function', () => {
     return <button onClick={() => increment()} />
   }
 
+  const { renderCount } = perf(React)
   render(<App />)
 
   expect(renderedItems).toEqual([0])
@@ -169,6 +247,8 @@ it('should not re-render when using state in a function', () => {
   fireEvent.click(screen.getByRole('button'))
 
   expect(renderedItems).toEqual([0])
+
+  await wait(() => expect(renderCount.current.App.value).toBe(1))
 })
 
 it('functions can call other functions', () => {
@@ -247,7 +327,7 @@ it('re-renders on changed used state', () => {
   const App = () => {
     const state = useIbiza({ count: 0 })
     renderedItems.push(state.count)
-    return <button onClick={() => (state.count += 1)} />
+    return <button onClick={() => state.count++} />
   }
 
   render(<App />)

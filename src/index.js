@@ -2,7 +2,7 @@ import { useRef, useEffect, useLayoutEffect, useReducer, useCallback, useDebugVa
 import observable, { subscribers } from './observable'
 import { devTool, devToolExtension, initDevTools } from './devtools'
 import { store, unwrap, reset } from './store'
-import { nth, forEach, isArray, set, get } from 'lodash'
+import { mergeWith, nth, forEach, isArray, set, get } from 'lodash'
 
 export { initDevTools, unwrap, reset }
 
@@ -103,10 +103,10 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
     [store, devTool]
   )
 
-  // Merge any initialState by path, then delete it so we don't use it again.
+  // Merge any initialState using an assign function that copies full descriptors, then delete it so
+  // we don't use it again.
   if (initialState.current) {
-    forEach(initialState.current, (v, k) => set(store, k, v))
-
+    completeAssign(store, initialState.current)
     initialState.current = null
   }
 
@@ -152,4 +152,22 @@ const getInitialState = selectorPathOrInitialState => {
   if (typeof selectorPathOrInitialState === 'string') return undefined
   if (typeof selectorPathOrInitialState === 'function') return selectorPathOrInitialState()
   return selectorPathOrInitialState
+}
+
+const completeAssign = (target, ...sources) => {
+  sources.forEach(source => {
+    let descriptors = Object.keys(source).reduce((descriptors, key) => {
+      descriptors[key] = Object.getOwnPropertyDescriptor(source, key)
+      return descriptors
+    }, {})
+
+    // By default, Object.assign copies enumerable Symbols, too
+    Object.getOwnPropertySymbols(source).forEach(sym => {
+      let descriptor = Object.getOwnPropertyDescriptor(source, sym)
+      if (descriptor.enumerable) {
+        descriptors[sym] = descriptor
+      }
+    })
+    Object.defineProperties(target, descriptors)
+  })
 }
