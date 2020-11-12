@@ -1,11 +1,12 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable react/display-name */
 import React from 'react'
-import { render, fireEvent, screen, waitFor } from '@testing-library/react'
+import ReactDOM from 'react-dom'
+import { render, act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderHook, act as hookAct } from '@testing-library/react-hooks'
 import { perf, wait } from 'react-performance-testing'
 
-import { useIbiza, reset, unwrap, getStore } from '../src'
+import { useIbiza, reset, unwrap, getState } from '../src'
 
 let renderedItems = []
 const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resolve(data), ms))
@@ -15,9 +16,35 @@ beforeEach(() => {
   renderedItems = []
 })
 
-describe('getStore', () => {
-  expect(getStore()).toEqual({})
+it('can get the store', () => {
+  expect(getState()).toEqual({})
 })
+
+it.todo('can set the store')
+// () => {
+//   setState({ count: 1 })
+//   expect(getState()).toEqual({ count: 1 })
+//   setState({ count: 2 })
+//   expect(getState()).toEqual({ count: 2 })
+// }
+
+it.todo('re-renders on setState')
+// () => {
+//   const App = () => {
+//     const state = useIbiza({ count: 0 })
+//     renderedItems.push(state.count)
+//     return <div>{state.count}</div>
+//   }
+
+//   render(<App />)
+
+//   expect(renderedItems).toEqual([0])
+
+//   // fireEvent.click(screen.getByRole('button'))
+//   act(() => setState({ count: 1 }))
+
+//   expect(renderedItems).toEqual([0, 1])
+// }
 
 it('returns empty state proxy with no arguments', () => {
   const { result } = renderHook(() => useIbiza())
@@ -334,4 +361,63 @@ it('re-renders used component from change in other', () => {
   fireEvent.click(screen.getByRole('button'))
 
   expect(renderedItems).toEqual([['app'], { child1: false }, { child2: false }, { child2: true }])
+})
+
+it('can batch updates', async () => {
+  function Counter() {
+    const { count, inc } = useIbiza({
+      count: 0,
+      inc: state => void state.count++
+    })
+    React.useEffect(() => {
+      ReactDOM.unstable_batchedUpdates(() => {
+        inc()
+        inc()
+      })
+    }, [inc])
+    return <div>count: {count}</div>
+  }
+
+  render(<Counter />)
+
+  await screen.findByText('count: 2')
+})
+
+it('ensures parent components subscribe before children', async () => {
+  const Child = ({ id }) => {
+    const children = useIbiza(`children`)
+    return <div>{children[id].text}</div>
+  }
+
+  const Parent = () => {
+    const state = useIbiza()
+    const onClick = () => {
+      state.children[3] = { text: 'child 3' }
+    }
+
+    return (
+      <>
+        <button onClick={onClick}>change state</button>
+        {Object.keys(state.children).map(id => (
+          <Child id={id} key={id} />
+        ))}
+      </>
+    )
+  }
+
+  const App = () => {
+    const state = useIbiza({
+      children: {
+        1: { text: 'child 1' },
+        2: { text: 'child 2' }
+      }
+    })
+    return <Parent />
+  }
+
+  render(<App />)
+
+  fireEvent.click(screen.getByText('change state'))
+
+  await screen.findByText('child 3')
 })

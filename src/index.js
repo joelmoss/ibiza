@@ -6,13 +6,22 @@ import { nth, forEach, isArray, set, get } from 'lodash'
 
 export { initDevTools, unwrap, reset }
 
-export const getStore = () => store
+export const getState = () => store
 
 // Returns the whole of the store state (default), or a slice of the state if a state path is given.
 // Any mutations to the returned state will be observed and tracked, and will result in a re-render.
 //
-// Any time a state property is read, it is "observed" added to the an array of observed state
+// Any time a state property is read, it is "observed" and added to an array of observed state
 // paths. Then when any observed property is mutated, the component is re-rendered.
+//
+// - selectorPathOrInitialState(String | Object | Array)
+// - options?(Object)
+//
+// If `selectorPathOrInitialState` is an object, the store will be populated with that object, and
+// will return the entire store state.
+//
+// If `selectorPathOrInitialState` is a string, it will extract a slice of the store using the
+// string as a path of keys (see Lodash.get), and return the value.
 export const useIbiza = (selectorPathOrInitialState, options = {}) => {
   const name = useRef(options.name)
 
@@ -61,7 +70,8 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
 
       debug('pre:onSet', { key, target, path, paths: observedPathsRef.current })
 
-      if (observedPathsRef.current.includes(path)) {
+      // If the mutated `path` or its ancestors are being observed, rerender.
+      if (isObservedPath(path)) {
         devTool && devTool.send({ type: 'SET', key, target, previous, value, path }, unwrap())
         debug('onSet', { key, target, previous, value, path })
 
@@ -71,13 +81,21 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
     [observedPathsRef, devTool]
   )
 
+  const isObservedPath = path => {
+    if (observedPathsRef.current.includes(path)) return true
+
+    // Check ancestors
+    const paths = path.split('.')
+    return observedPathsRef.current.some(p => paths.includes(p))
+  }
+
   const onApply = useCallback(
     ({ target, thisArg, argumentsList, path }) => {
       devTool && devTool.send({ type: 'APPLY', target, path }, unwrap())
       debug('onApply', { target, path })
 
-      // Functions should be able to read state without fear of the get being trapped by the proxy. So
-      // we return a new un-cached observable here without the onGet callback.
+      // Functions should be able to read state without fear of the get being trapped by the proxy.
+      // So we return a new un-cached observable here without the onGet callback.
       const state = observable(store, '', false, { onApply })
 
       return Reflect.apply(target, thisArg, [state, ...argumentsList])
@@ -96,6 +114,7 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
     const state = selectorPath.current ? get(store, selectorPath.current) : store
 
     if (selectorPath.current && typeof state !== 'object') {
+      // console.log(state)
       throw new TypeError(
         'Cannot useIbiza with a non-object. If you called useIbiza with slice, make sure that ' +
           'slice returns an object and not a property value'
