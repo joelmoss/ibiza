@@ -5,7 +5,7 @@ import { render, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderHook, act as hookAct } from '@testing-library/react-hooks'
 import { perf, wait } from 'react-performance-testing'
 
-import { useIbiza, reset, unwrap } from '../src'
+import { useIbiza, reset, unwrap, getStore } from '../src'
 
 let renderedItems = []
 const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resolve(data), ms))
@@ -13,6 +13,10 @@ const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resol
 beforeEach(() => {
   reset()
   renderedItems = []
+})
+
+describe('getStore', () => {
+  expect(getStore()).toEqual({})
 })
 
 it('returns empty state proxy with no arguments', () => {
@@ -244,7 +248,7 @@ it('re-renders on changed array state', async () => {
   expect(renderedItems).toEqual([[1], [1, 2]])
 })
 
-it.only('does not re-render on changed un-used state', async () => {
+it('does not re-render on changed un-used state', async () => {
   const App = () => {
     const state = useIbiza({ count: 0 })
 

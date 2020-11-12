@@ -4,7 +4,9 @@ import { devTool, devToolExtension, initDevTools } from './devtools'
 import { store, unwrap, reset } from './store'
 import { nth, forEach, isArray, set, get } from 'lodash'
 
-export { initDevTools, unwrap, reset, store }
+export { initDevTools, unwrap, reset }
+
+export const getStore = () => store
 
 // Returns the whole of the store state (default), or a slice of the state if a state path is given.
 // Any mutations to the returned state will be observed and tracked, and will result in a re-render.
