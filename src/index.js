@@ -4,7 +4,9 @@ import { devTool, devToolExtension, initDevTools } from './devtools'
 import { store, unwrap, reset } from './store'
 import { mergeWith, nth, forEach, isArray, set, get } from 'lodash'
 
-export { initDevTools, unwrap, reset }
+initDevTools()
+
+export { unwrap, reset }
 
 export const getState = () => store
 
