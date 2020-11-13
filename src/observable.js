@@ -36,11 +36,6 @@ const createHandler = (proxyCache, { onGet, onApply }) => {
       if (key === TARGET) return target
       if (key === 'isProxy') return true
 
-      // console.log('pre:onGet', { key, target })
-      // console.log(getOwnPropertyDescriptor(target, key))
-      // console.log(Reflect.getOwnPropertyDescriptor(target, key).get)
-      // console.log(getOwnPropertyDescriptor(target, key).get)
-
       const result = Reflect.get(target, key, receiver)
 
       // Ignore well known symbols. These symbols are frequently retrieved in low level

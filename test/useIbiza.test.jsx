@@ -48,6 +48,8 @@ it.todo('re-renders on setState')
 //   expect(renderedItems).toEqual([0, 1])
 // }
 
+it.todo('using ++/-- operators on state should not re-render if unused')
+
 it('returns empty state proxy with no arguments', () => {
   const { result } = renderHook(() => useIbiza())
 
@@ -114,7 +116,7 @@ it('sets state', () => {
   const { result } = renderHook(() => useIbiza({ count: 0 }))
 
   hookAct(() => {
-    result.current.count += 1
+    result.current.count++
     result.current.user = { name: 'Joel' }
   })
 
@@ -146,18 +148,51 @@ it('can change state in functions', () => {
   expect(result.current.count).toBe(1)
 })
 
+it('can change state with `this` in functions', async () => {
+  const App = () => {
+    const state = useIbiza({
+      count: 0,
+      increment() {
+        this.count++
+      }
+    })
+    return (
+      <>
+        <h1>Count is: {state.count}</h1>
+        <button onClick={state.increment}>Increment</button>
+      </>
+    )
+  }
+
+  const { renderCount } = perf(React)
+  render(<App />)
+
+  screen.getByText('Count is: 0')
+
+  fireEvent.click(screen.getByRole('button'))
+
+  await screen.findByText('Count is: 1')
+  await wait(() => expect(renderCount.current.App.value).toBe(2))
+})
+
 it('functions accept a payload', () => {
   const { result } = renderHook(() =>
     useIbiza({
       count: 0,
       incrementBy(state, payload) {
         state.count = state.count + payload
+      },
+      user: { name: 'Joel' },
+      setName({ user }) {
+        user.name = 'Joel Moss'
       }
     })
   )
 
   hookAct(() => void result.current.incrementBy(3))
+  hookAct(() => void result.current.setName())
 
+  expect(result.current.user.name).toBe('Joel Moss')
   expect(result.current.count).toBe(3)
 })
 
@@ -223,8 +258,6 @@ it('getter', async () => {
   await screen.findByText('Name is Bob Moss')
   await wait(() => expect(renderCount.current.App.value).toBe(2))
 })
-
-it.todo('using ++/-- operators on state should not re-render if unused')
 
 it('should not re-render when using state in a function', async () => {
   const App = () => {

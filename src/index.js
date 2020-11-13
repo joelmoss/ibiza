@@ -92,13 +92,13 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
   const onApply = useCallback(
     ({ target, thisArg, argumentsList, path }) => {
       devTool && devTool.send({ type: 'APPLY', target, path }, unwrap())
-      debug('onApply', { target, path })
+      debug('onApply', { target, path, thisArg })
 
       // Functions should be able to read state without fear of the get being trapped by the proxy.
       // So we return a new un-cached observable here without the onGet callback.
       const state = observable(store, '', false, { onApply })
 
-      return Reflect.apply(target, thisArg, [state, ...argumentsList])
+      return Reflect.apply(target, state, [state, ...argumentsList])
     },
     [store, devTool]
   )
