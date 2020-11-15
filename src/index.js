@@ -2,10 +2,11 @@ import { useRef, useEffect, useLayoutEffect, useReducer, useCallback, useDebugVa
 import observable, { subscribers } from './observable'
 import { devTool, devToolExtension, initDevTools } from './devtools'
 import { store, unwrap, reset } from './store'
-import { mergeWith, nth, forEach, isArray, set, get } from 'lodash'
+import { mergeWith, nth, forEach, isArray, set, get, has } from 'lodash'
 
 initDevTools()
 
+export const config = {}
 export { unwrap, reset }
 
 export const getState = () => store
@@ -18,6 +19,9 @@ export const getState = () => store
 //
 // - selectorPathOrInitialState(String | Object | Array)
 // - options?(Object)
+//   - name(String) - Name of the state slice. If set, will log debug output to the console.
+//   - fetchFn(Function) - A custom fetch function to use instead of the native `fetch`.
+//   - immutable(Boolean) - If true, will return immutable state only.
 //
 // If `selectorPathOrInitialState` is an object, the store will be populated with that object, and
 // will return the entire store state.
@@ -25,13 +29,15 @@ export const getState = () => store
 // If `selectorPathOrInitialState` is a string, it will extract a slice of the store using the
 // string as a path of keys (see Lodash.get), and return the value.
 export const useIbiza = (selectorPathOrInitialState, options = {}) => {
+  const isCustomFetch = !!(options.fetchFn || config.fetchFn)
+  const fetchFn = options.fetchFn || config.fetchFn || fetch
   const name = useRef(options.name)
 
   useDebugValue(name.current ? name.current : '[unknown]')
 
-  const debug = useCallback((...args) => {
+  const debug = (...args) => {
     name.current && console.log('useIbiza', `[${name.current}]`, ...args)
-  }, [])
+  }
 
   debug('init', selectorPathOrInitialState)
 
@@ -44,6 +50,7 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
   const observableRef = useRef()
   const proxyCache = useRef(new WeakMap()) // per-hook proxyCache
 
+  // When property is get, we add it to the array of observed paths, and subscribe to any changes.
   const onGet = useCallback(
     ({ target, key, path }) => {
       if (observedPathsRef.current.includes(path)) return
@@ -51,10 +58,12 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
       // Add the used path to the observed paths.
       observedPathsRef.current.push(path)
 
-      devTool && devTool.send({ type: 'GET', key, target, path }, unwrap())
-      debug('onGet', { key, target, path })
+      if (devTool) {
+        devTool.send({ type: 'GET', key, target, path, immutable: options.immutable }, unwrap())
+      }
+      debug('onGet', { key, target, path, immutable: options.immutable })
 
-      // Subscribe to changes.
+      // Subscribe to changes if its not immutable.
       subscribers.add(onSet)
     },
     [subscribers, observedPathsRef, devTool]
@@ -70,7 +79,13 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
         }
       }
 
-      debug('pre:onSet', { key, target, path, paths: observedPathsRef.current })
+      debug('pre:onSet', {
+        key,
+        target,
+        path,
+        paths: observedPathsRef.current,
+        immutable: options.immutable
+      })
 
       // If the mutated `path` or its ancestors are being observed, rerender.
       if (isObservedPath(path)) {
@@ -98,7 +113,7 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
 
       // Functions should be able to read state without fear of the get being trapped by the proxy.
       // So we return a new un-cached observable here without the onGet callback.
-      const state = observable(store, '', false, { onApply })
+      const state = observable(store, '', false, { onApply }, { immutable: options.immutable })
 
       return Reflect.apply(target, state, [state, ...argumentsList])
     },
@@ -113,20 +128,47 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
   }
 
   if (!observableRef.current) {
-    const state = selectorPath.current ? get(store, selectorPath.current) : store
+    let state
 
-    if (selectorPath.current && typeof state !== 'object') {
-      // console.log(state)
-      throw new TypeError(
-        'Cannot useIbiza with a non-object. If you called useIbiza with slice, make sure that ' +
-          'slice returns an object and not a property value'
-      )
+    if (selectorPath.current) {
+      if (selectorPath.current.indexOf('/') === 0) {
+        // Handle URL requests
+        // Find any existing state
+        if (Object.keys(store).includes(selectorPath.current)) {
+          state = store[selectorPath.current]
+        } else {
+          // Otherwise fetch the given URL using suspense.
+          state = suspendedState(isCustomFetch, fetchFn, selectorPath.current)
+        }
+      } else {
+        state = get(store, selectorPath.current)
+      }
+    } else {
+      state = store
     }
 
-    observableRef.current = observable(state, selectorPath.current, proxyCache.current, {
-      onGet,
-      onApply
-    })
+    if (selectorPath.current && typeof state !== 'object') {
+      if (options.immutable) {
+        state = store
+      } else {
+        throw new TypeError(
+          'Cannot useIbiza with a non-object. If you called useIbiza with slice, make sure that ' +
+            'slice returns an object and not a property value. Or pass the `immutable` option to ' +
+            'return an immutable value.'
+        )
+      }
+    }
+
+    observableRef.current = observable(
+      state,
+      selectorPath.current,
+      proxyCache.current,
+      {
+        onGet,
+        onApply
+      },
+      { immutable: options.immutable }
+    )
   }
 
   useIsomorphicLayoutEffect(() => {
@@ -136,7 +178,73 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
     }
   }, [devToolExtension, subscribers, onSet])
 
+  debug('returns', { selectorPath: selectorPath.current, observableRef: observableRef.current })
+
+  // As we can request an immutable slice of the state, here we ensure the correct value is
+  // returned.
+  if (
+    options.immutable &&
+    selectorPath.current &&
+    has(observableRef.current, selectorPath.current)
+  ) {
+    return get(observableRef.current, selectorPath.current)
+  }
+
   return observableRef.current
+}
+
+const fetchCache = {}
+const suspendedState = (isCustomFetch, fetchFn, statePath) => {
+  if (Object.keys(fetchCache).includes(statePath)) {
+    const cache = fetchCache[statePath]
+
+    // If an error occurred, throw it so that componentDidCatch can handle it.
+    if (cache.error) {
+      throw cache.error
+    }
+
+    // If a response was successful, return it.
+    if (cache.response) {
+      delete fetchCache[statePath]
+      return cache.response
+    }
+
+    // If we are still waiting, throw the Promise so that Suspense can fallback.
+    throw cache.fetch
+  }
+
+  // Cache is not found, so create it.
+  const cache = {
+    fetch: fetchFn(statePath)
+  }
+
+  if (!isCustomFetch) {
+    cache.fetch.then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const contentType = response.headers.get('Content-Type')
+
+      if (contentType && contentType.includes('application/json')) {
+        return response.json()
+      }
+
+      return response.text()
+    })
+  }
+
+  cache.fetch
+    .then(response => {
+      cache.response = response
+    })
+    .catch(error => {
+      cache.error = error
+    })
+
+  fetchCache[statePath] = cache
+
+  throw cache.fetch
 }
 
 const useIsomorphicLayoutEffect =

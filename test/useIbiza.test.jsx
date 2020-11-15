@@ -1,17 +1,34 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable react/display-name */
-import React, { useCallback } from 'react'
+import React, { Suspense, useCallback } from 'react'
 import ReactDOM from 'react-dom'
 import { render, act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderHook, act as hookAct } from '@testing-library/react-hooks'
 import { perf, wait } from 'react-performance-testing'
 import { merge, mergeWith } from 'lodash'
 
-import { useIbiza, reset, unwrap, getState } from '../src'
-import State from 'sucrase/dist/parser/tokenizer/state'
+import { useIbiza, reset, unwrap, getState, config } from '../src'
 
 let renderedItems = []
 const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resolve(data), ms))
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() {
+    return {
+      hasError: true
+    }
+  }
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback
+    }
+    return this.props.children
+  }
+}
 
 beforeEach(() => {
   reset()
@@ -61,6 +78,80 @@ it('uses non-string argument as initial state', () => {
   const { result } = renderHook(() => useIbiza({ count: 0 }))
 
   expect(result.current).toEqual({ count: 0 })
+})
+
+describe('`immutable` option is `true`', () => {
+  it('cannot mutate state', () => {
+    const { result } = renderHook(() => useIbiza({ count: 0 }, { immutable: true }))
+
+    expect(() => {
+      hookAct(() => void result.current.count++)
+    }).toThrow()
+
+    expect(() => {
+      hookAct(() => void (result.current.name = 'Joel'))
+    }).toThrow()
+
+    expect(result.current).toEqual({ count: 0 })
+  })
+
+  it('re-renders on changed used state', async () => {
+    const App = () => {
+      const state = useIbiza({ count: 0 })
+      renderedItems.push(state.count)
+      return (
+        <>
+          <p>CountSetted is {state.count}</p>
+          <Count />
+          <button onClick={() => state.count++} />
+        </>
+      )
+    }
+
+    const Count = () => {
+      const count = useIbiza('count', { immutable: true })
+      return <p>CountGetted is {count}</p>
+    }
+
+    render(<App />)
+
+    screen.getByText('CountSetted is 0')
+    screen.getByText('CountGetted is 0')
+    expect(renderedItems).toEqual([0])
+
+    fireEvent.click(screen.getByRole('button'))
+
+    expect(renderedItems).toEqual([0, 1])
+    await screen.findByText('CountSetted is 1')
+    await screen.findByText('CountGetted is 1')
+  })
+
+  it('can return a non-object', () => {
+    const { result } = renderHook(() => {
+      useIbiza({ count: 0, page: 1 })
+      return useIbiza('count', { immutable: true })
+    })
+
+    expect(result.current).toEqual(0)
+  })
+
+  it('can return a nested non-object', () => {
+    const { result } = renderHook(() => {
+      useIbiza({ posts: { count: 0, page: 1 } })
+      return useIbiza('posts.count', { immutable: true })
+    })
+
+    expect(result.current).toEqual(0)
+  })
+
+  it('can return a nested object', () => {
+    const { result } = renderHook(() => {
+      useIbiza({ posts: { count: 0, pages: { page1: 'Yes' } } })
+      return useIbiza('posts.pages', { immutable: true })
+    })
+
+    expect(result.current).toEqual({ page1: 'Yes' })
+  })
 })
 
 it('can use a slice of the state', () => {
@@ -533,4 +624,63 @@ it('ensures parent components subscribe before children', async () => {
   fireEvent.click(screen.getByText('change state'))
 
   await screen.findByText('child 3')
+})
+
+describe('URL backed state', () => {
+  config.fetchFn = path => {
+    const url = new URL(path, 'http://localhost')
+    const resource = new Request(url)
+    return fetch(resource).then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const contentType = response.headers.get('Content-Type')
+
+      if (contentType && contentType.includes('application/json')) {
+        return response.json()
+      }
+
+      return response.text()
+    })
+  }
+
+  it('fetches from the server', async () => {
+    function Section() {
+      const data = useIbiza('/user')
+      return <div>{data.name}</div>
+    }
+    const { container } = render(
+      <Suspense fallback={<div>fallback</div>}>
+        <Section />
+      </Suspense>
+    )
+
+    // hydration
+    expect(container.textContent).toMatchInlineSnapshot(`"fallback"`)
+    await act(() => new Promise(res => setTimeout(res, 110))) // update
+    expect(container.textContent).toMatchInlineSnapshot(`"Joel Moss"`)
+  })
+
+  it('should throw errors', async () => {
+    function Section() {
+      const data = useIbiza('/error')
+      return <div>{data}</div>
+    }
+    // https://reactjs.org/docs/concurrent-mode-suspense.html#handling-errors
+    const { container } = render(
+      <ErrorBoundary fallback={<div>error boundary</div>}>
+        <Suspense fallback={<div>fallback</div>}>
+          <Section />
+        </Suspense>
+      </ErrorBoundary>
+    )
+
+    // hydration
+    expect(container.textContent).toMatchInlineSnapshot(`"fallback"`)
+    await act(() => new Promise(res => setTimeout(res, 150))) // still suspending
+    expect(container.textContent).toMatchInlineSnapshot(`"error boundary"`)
+
+    console.info('*The warning above can be ignored (caught by ErrorBoundary).')
+  })
 })

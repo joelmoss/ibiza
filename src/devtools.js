@@ -13,6 +13,8 @@ export const initDevTools = () => {
     } catch (error) {} /* eslint-disable-line no-empty */
   }
 
-  devTool = devToolExtension.connect({ name: 'Ibiza' })
-  devTool.init(unwrap())
+  if (devToolExtension) {
+    devTool = devToolExtension.connect({ name: 'Ibiza' })
+    devTool.init(unwrap())
+  }
 }
