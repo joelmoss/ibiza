@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable react/display-name */
-import React, { Suspense, useCallback } from 'react'
+import React, { Suspense, useCallback, useRef, useState } from 'react'
 import ReactDOM from 'react-dom'
 import { render, act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderHook, act as hookAct } from '@testing-library/react-hooks'
@@ -23,9 +23,7 @@ class ErrorBoundary extends React.Component {
     }
   }
   render() {
-    if (this.state.hasError) {
-      return this.props.fallback
-    }
+    if (this.state.hasError) return this.props.fallback
     return this.props.children
   }
 }
@@ -350,6 +348,36 @@ it('getter', async () => {
   await wait(() => expect(renderCount.current.App.value).toBe(2))
 })
 
+it.skip('useCache', async () => {
+  const cache = {}
+  const useCache = (key, value) => {
+    if (!Object.keys(cache).includes(key)) {
+      console.log(1)
+      cache[key] = value
+    }
+
+    return cache[key]
+  }
+
+  const App = () => {
+    const cache = useCache('users', { name: 'Joel' })
+    console.log(cache)
+    return <h1>Cache is {cache.name}</h1>
+  }
+
+  const { renderCount } = perf(React)
+  const { rerender } = render(<App />)
+
+  screen.getByText('Cache is Joel')
+
+  cache.users.name = 'Bob'
+  rerender(<App />)
+
+  screen.getByText('Cache is Bob')
+
+  await wait(() => expect(renderCount.current.App.value).toBe(2))
+})
+
 it('should not re-render when using state in a function', async () => {
   const App = () => {
     const { increment } = useIbiza({
@@ -632,16 +660,10 @@ describe('URL backed state', () => {
     const resource = new Request(url)
     return fetch(resource).then(response => {
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw `Error (${response.status})`
       }
 
-      const contentType = response.headers.get('Content-Type')
-
-      if (contentType && contentType.includes('application/json')) {
-        return response.json()
-      }
-
-      return response.text()
+      return response.json()
     })
   }
 
@@ -650,24 +672,85 @@ describe('URL backed state', () => {
       const data = useIbiza('/user')
       return <div>{data.name}</div>
     }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <Section />
+        </Suspense>
+      )
+    }
+
+    const { container } = render(<App />)
+
+    expect(container.textContent).toMatchInlineSnapshot(`"fallback"`)
+    await act(() => new Promise(res => setTimeout(res, 150)))
+    expect(container.textContent).toMatchInlineSnapshot(`"Joel Moss"`)
+  })
+
+  it('fetches only once', async () => {
+    const spy = jest.spyOn(config, 'fetchFn')
+
+    function Section() {
+      const [count, setCount] = useState(0)
+      const data = useIbiza('/user')
+      return (
+        <>
+          <div>{data.name}</div>
+          <div>Count is {count}</div>
+          <button onClick={() => setCount(1)}>ClickMe</button>
+        </>
+      )
+    }
     const { container } = render(
       <Suspense fallback={<div>fallback</div>}>
         <Section />
       </Suspense>
     )
 
-    // hydration
     expect(container.textContent).toMatchInlineSnapshot(`"fallback"`)
-    await act(() => new Promise(res => setTimeout(res, 110))) // update
-    expect(container.textContent).toMatchInlineSnapshot(`"Joel Moss"`)
+    await act(() => new Promise(res => setTimeout(res, 150)))
+    await screen.findByText('Joel Moss')
+
+    fireEvent.click(screen.getByRole('button'))
+
+    await screen.findByText('Count is 1')
+
+    expect(spy).toHaveBeenCalledTimes(1)
+  })
+
+  it('handles render errors', async () => {
+    function Section() {
+      const data = useIbiza('/user')
+      return (
+        <div>
+          {data.name} - {thisDoesNotExist}
+        </div>
+      )
+    }
+    const App = () => {
+      return (
+        <ErrorBoundary fallback={<div>error boundary</div>}>
+          <Suspense fallback={<div>fallback</div>}>
+            <Section />
+          </Suspense>
+        </ErrorBoundary>
+      )
+    }
+
+    const { container } = render(<App />)
+
+    expect(container.textContent).toMatchInlineSnapshot(`"fallback"`)
+    await act(() => new Promise(res => setTimeout(res, 150)))
+    expect(container.textContent).toMatchInlineSnapshot(`"error boundary"`)
+
+    console.info('*The warning above can be ignored (caught by ErrorBoundary).')
   })
 
   it('should throw errors', async () => {
     function Section() {
       const data = useIbiza('/error')
-      return <div>{data}</div>
+      return <div>sdf</div>
     }
-    // https://reactjs.org/docs/concurrent-mode-suspense.html#handling-errors
     const { container } = render(
       <ErrorBoundary fallback={<div>error boundary</div>}>
         <Suspense fallback={<div>fallback</div>}>
@@ -676,9 +759,8 @@ describe('URL backed state', () => {
       </ErrorBoundary>
     )
 
-    // hydration
     expect(container.textContent).toMatchInlineSnapshot(`"fallback"`)
-    await act(() => new Promise(res => setTimeout(res, 150))) // still suspending
+    await act(() => new Promise(res => setTimeout(res, 150)))
     expect(container.textContent).toMatchInlineSnapshot(`"error boundary"`)
 
     console.info('*The warning above can be ignored (caught by ErrorBoundary).')

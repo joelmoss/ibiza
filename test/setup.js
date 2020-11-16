@@ -5,11 +5,11 @@ import { setupServer } from 'msw/node'
 
 const handlers = [
   rest.get('/user', async (req, res, ctx) => {
-    return res(ctx.json({ name: 'Joel Moss' }))
+    return res(ctx.delay(100), ctx.json({ name: 'Joel Moss' }))
   }),
 
   rest.get('/error', async (req, res, ctx) => {
-    return res(ctx.status(500))
+    return res(ctx.delay(100), ctx.status(500), ctx.json({ errorMessage: 'ERROR!' }))
   })
 ]
 

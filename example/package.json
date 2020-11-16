@@ -10,6 +10,7 @@
     "react": "link:../node_modules/react",
     "react-dom": "link:../node_modules/react-dom",
     "react-scripts": "4.0.0",
+    "swr": "^0.3.8",
     "web-vitals": "^0.2.4"
   },
   "scripts": {
@@ -35,5 +36,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "devDependencies": {}
 }

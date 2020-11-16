@@ -1,4 +1,5 @@
 export let store = {}
+export const fetchCache = new Map()
 export const TARGET = Symbol('target')
 
 export const unwrap = state =>
@@ -6,4 +7,5 @@ export const unwrap = state =>
 
 export const reset = () => {
   store = {}
+  fetchCache = new Map()
 }
