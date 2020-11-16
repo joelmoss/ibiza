@@ -8,6 +8,10 @@ const handlers = [
     return res(ctx.delay(100), ctx.json({ name: 'Joel Moss' }))
   }),
 
+  rest.get('/users/1', async (req, res, ctx) => {
+    return res(ctx.delay(100), ctx.json({ id: 1, name: 'Joel Moss' }))
+  }),
+
   rest.get('/error', async (req, res, ctx) => {
     return res(ctx.delay(100), ctx.status(500), ctx.json({ errorMessage: 'ERROR!' }))
   })

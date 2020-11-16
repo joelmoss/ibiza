@@ -687,6 +687,36 @@ describe('URL backed state', () => {
     expect(container.textContent).toMatchInlineSnapshot(`"Joel Moss"`)
   })
 
+  it('can predefine request functions', async () => {
+    function Section() {
+      const data = useIbiza('/user')
+      return (
+        <div>
+          #{data.id}:{data.name}
+        </div>
+      )
+    }
+    const App = () => {
+      useIbiza({
+        userId: 1,
+        get ['/user']() {
+          return config.fetchFn(`/users/${this.userId}`)
+        }
+      })
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <Section />
+        </Suspense>
+      )
+    }
+
+    const { container } = render(<App />)
+
+    expect(container.textContent).toMatchInlineSnapshot(`"fallback"`)
+    await act(() => new Promise(res => setTimeout(res, 150)))
+    expect(container.textContent).toMatchInlineSnapshot(`"#1:Joel Moss"`)
+  })
+
   it('fetches only once', async () => {
     const spy = jest.spyOn(config, 'fetchFn')
 

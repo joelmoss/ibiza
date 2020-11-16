@@ -29,7 +29,6 @@ export const getState = () => store
 // If `selectorPathOrInitialState` is a string, it will extract a slice of the store using the
 // string as a path of keys (see Lodash.get), and return the value.
 export const useIbiza = (selectorPathOrInitialState, options = {}) => {
-  const isCustomFetch = !!(options.fetchFn || config.fetchFn)
   const fetchFn = options.fetchFn || config.fetchFn || fetch
   const name = useRef(options.name)
 
@@ -135,13 +134,14 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
         // console.log(1, store, selectorPath.current)
         // Find any existing state
         if (Object.keys(store).includes(selectorPath.current)) {
-          // console.log(2)
           state = store[selectorPath.current]
+
+          if (typeof state.then === 'function') {
+            state = suspendedState(state, selectorPath.current)
+          }
         } else {
-          // console.log(3)
           // Otherwise fetch the given URL using suspense.
-          state = suspendedState(isCustomFetch, fetchFn, selectorPath.current)
-          // console.log(state)
+          state = suspendedState(fetchFn, selectorPath.current)
         }
       } else {
         state = get(store, selectorPath.current)
@@ -196,11 +196,10 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
   return observableRef.current
 }
 
-const suspendedState = (isCustomFetch, fetchFn, key) => {
+const suspendedState = (fetchFn, key) => {
   if (!fetchCache[key]) {
-    // It's a new request.
     fetchCache[key] = {
-      fetch: fetchFn(key)
+      fetch: (typeof fetchFn.then === 'function' ? fetchFn : fetchFn(key))
         .then(response => {
           fetchCache[key].response = response
         })
