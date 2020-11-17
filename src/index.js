@@ -21,7 +21,6 @@ export const getState = () => store
 // - options?(Object)
 //   - name(String) - Name of the state slice. If set, will log debug output to the console.
 //   - fetchFn(Function) - A custom fetch function to use instead of the native `fetch`.
-//   - immutable(Boolean) - If true, will return immutable state only.
 //
 // If `selectorPathOrInitialState` is an object, the store will be populated with that object, and
 // will return the entire store state.
@@ -35,10 +34,10 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
   useDebugValue(name.current ? name.current : '[unknown]')
 
   const debug = (...args) => {
-    name.current && console.log('useIbiza', `[${name.current}]`, ...args)
+    name.current && console.debug('useIbiza', `[${name.current}]`, ...args)
   }
 
-  // debug('init', selectorPathOrInitialState)
+  debug('init', { selectorPathOrInitialState, options })
 
   // Builds the selectedPath and initialState variables from the selectedPathOrInitialState.
   const initialState = useRef(getInitialState(selectorPathOrInitialState))
@@ -49,51 +48,46 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
   const observableRef = useRef()
   const proxyCache = useRef(new WeakMap()) // per-hook proxyCache
 
-  const onSet = useCallback(
-    ({ target, key, previous, value, path }) => {
-      // If target is an array, find the parent path and use that to check if it's used.
-      if (isArray(target)) {
-        const parentPath = nth(path.split('.'), -2)
-        if (parentPath) {
-          path = parentPath
-        }
+  const onSet = useCallback(({ target, key, previous, value, path }) => {
+    // If target is an array, find the parent path and use that to check if it's used.
+    if (isArray(target)) {
+      const parentPath = nth(path.split('.'), -2)
+      if (parentPath) {
+        path = parentPath
       }
+    }
 
-      debug('pre:onSet', {
-        key,
-        target,
-        path,
-        paths: observedPathsRef.current,
-        immutable: options.immutable
-      })
+    debug('pre:onSet', {
+      key,
+      target,
+      path,
+      paths: observedPathsRef.current
+    })
 
-      // If the mutated `path` or its ancestors are being observed, rerender.
-      if (isObservedPath(path)) {
-        devTool && devTool.send({ type: 'SET', key, target, previous, value, path }, unwrap())
-        debug('onSet', { key, target, previous, value, path })
+    // If the mutated `path` or its ancestors are being observed, rerender.
+    if (isObservedPath(path)) {
+      devTool && devTool.send({ type: 'SET', key, target, previous, value, path }, unwrap())
+      debug('onSet', { key, target, previous, value, path })
 
-        forceRender()
-      }
-    },
-    [options.immutable]
-  )
+      forceRender()
+    }
+  }, [])
 
   // When property is get, we add it to the array of observed paths, and subscribe to any changes.
   const onGet = useCallback(
-    ({ target, key, path }) => {
+    ({ target, key, path, receiver }) => {
       if (observedPathsRef.current.includes(path)) return
 
       // Add the used path to the observed paths.
       observedPathsRef.current.push(path)
 
-      devTool &&
-        devTool.send({ type: 'GET', key, target, path, immutable: options.immutable }, unwrap())
-      debug('onGet', { key, target, path, immutable: options.immutable })
+      devTool && devTool.send({ type: 'GET', target, key, path, receiver }, unwrap())
+      debug('onGet', { target, key, path, receiver })
 
-      // Subscribe to changes if its not immutable.
+      // Subscribe to changes.
       subscribers.add(onSet)
     },
-    [options.immutable, onSet]
+    [onSet]
   )
 
   const isObservedPath = path => {
@@ -104,19 +98,16 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
     return observedPathsRef.current.some(p => paths.includes(p))
   }
 
-  const onApply = useCallback(
-    ({ target, thisArg, argumentsList, path }) => {
-      devTool && devTool.send({ type: 'APPLY', target, path }, unwrap())
-      debug('onApply', { target, path, thisArg })
+  const onApply = useCallback(({ target, thisArg, argumentsList, path }) => {
+    devTool && devTool.send({ type: 'APPLY', target, path }, unwrap())
+    debug('onApply', { target, path, thisArg })
 
-      // Functions should be able to read state without fear of the get being trapped by the proxy.
-      // So we return a new un-cached observable here without the onGet callback.
-      const state = observable(store, '', false, { onApply }, { immutable: options.immutable })
+    // Functions should be able to read state without fear of the get being trapped by the proxy.
+    // So we return a new un-cached observable here without the onGet callback.
+    const state = observable(store, '', false, { onApply })
 
-      return Reflect.apply(target, state, [state, ...argumentsList])
-    },
-    [options.immutable]
-  )
+    return Reflect.apply(target, state, [state, ...argumentsList])
+  }, [])
 
   // Merge any initialState with the store using an assign function that copies full descriptors,
   // then delete it so we don't use it again.
@@ -172,27 +163,17 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
     }
 
     if (selectorPath.current && typeof state !== 'object') {
-      if (options.immutable) {
-        state = store
-      } else {
-        throw new TypeError(
-          'Cannot useIbiza with a non-object. If you called useIbiza with slice, make sure that ' +
-            'slice returns an object and not a property value. Or pass the `immutable` option to ' +
-            'return an immutable value.'
-        )
-      }
+      throw new TypeError(
+        'Cannot useIbiza with a non-object. If you called useIbiza with slice, make sure that ' +
+          'slice returns an object and not a property value. If you only want a property value, ' +
+          'just destructure the returned object.'
+      )
     }
 
-    observableRef.current = observable(
-      state,
-      selectorPath.current,
-      proxyCache.current,
-      {
-        onGet,
-        onApply
-      },
-      { immutable: options.immutable }
-    )
+    observableRef.current = observable(state, selectorPath.current, proxyCache.current, {
+      onGet,
+      onApply
+    })
   }
 
   useIsomorphicLayoutEffect(() => {
@@ -203,16 +184,6 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
   }, [devToolExtension, subscribers, onSet])
 
   debug('returns', { selectorPath: selectorPath.current, observableRef: observableRef.current })
-
-  // As we can request an immutable slice of the state, here we ensure the correct value is
-  // returned.
-  if (
-    options.immutable &&
-    selectorPath.current &&
-    has(observableRef.current, selectorPath.current)
-  ) {
-    return get(observableRef.current, selectorPath.current)
-  }
 
   return observableRef.current
 }

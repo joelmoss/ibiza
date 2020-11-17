@@ -7,7 +7,7 @@ export const pathCache = new WeakMap()
 const propCache = new WeakMap()
 
 // Creates a Proxy for the given `obj`, where the handler is defined with the given `callbacks`.
-const observable = (obj = {}, path, proxyCache, callbacks = {}, options = {}) => {
+const observable = (obj = {}, path, proxyCache, callbacks = {}) => {
   // Of obj is already a proxy, return it.
   if (obj === null || obj.isProxy) return obj
 
@@ -15,7 +15,7 @@ const observable = (obj = {}, path, proxyCache, callbacks = {}, options = {}) =>
   if (proxyCache && proxyCache.has(obj)) return proxyCache.get(obj)
 
   // ...otherwise create a new proxy.
-  const proxy = new Proxy(obj, createHandler(proxyCache, callbacks, options))
+  const proxy = new Proxy(obj, createHandler(proxyCache, callbacks))
 
   // Build the selector path.
   pathCache.set(obj, path)
@@ -26,7 +26,7 @@ const observable = (obj = {}, path, proxyCache, callbacks = {}, options = {}) =>
   return proxy
 }
 
-const createHandler = (proxyCache, { onGet, onApply }, options = {}) => {
+const createHandler = (proxyCache, { onGet, onApply }) => {
   return {
     get: (target, key, receiver) => {
       if (key === TARGET) return target
@@ -35,13 +35,11 @@ const createHandler = (proxyCache, { onGet, onApply }, options = {}) => {
       const result = Reflect.get(target, key, receiver)
 
       // Ignore well known symbols. These symbols are frequently retrieved in low level
-      // JavaScript under the hood. Also, ignore any non-own properties.
-      if (
-        (key in target && !target.hasOwnProperty(key)) ||
-        (typeof key === 'symbol' && wellKnownSymbols.has(key))
-      ) {
-        return result
-      }
+      // JavaScript under the hood.
+      if (typeof key === 'symbol' && wellKnownSymbols.has(key)) return result
+
+      // Ignore any non-own properties.
+      if (!target.hasOwnProperty(key)) return result
 
       // Preserve invariants
       const descriptor = getOwnPropertyDescriptor(target, key)
@@ -52,10 +50,9 @@ const createHandler = (proxyCache, { onGet, onApply }, options = {}) => {
 
       // Functions should be observable so we can allow them to change state.
       if (typeof result === 'function') {
-        return observable(result, pathCache.get(target), proxyCache, { onApply }, options)
+        return observable(result, pathCache.get(target), proxyCache, { onApply })
       }
 
-      // const path = compact([pathCache.get(target), key]).join('.')
       const path =
         pathCache.get(target) === key ? key : compact([pathCache.get(target), key]).join('.')
       onGet && onGet({ target, key, path, receiver })
@@ -63,16 +60,10 @@ const createHandler = (proxyCache, { onGet, onApply }, options = {}) => {
       // If result is an object, then it's nested and needs to be proxied - Proxy ignores nested
       // properties.
       if (typeof result === 'object') {
-        return observable(
-          result,
-          path,
-          proxyCache,
-          {
-            onGet,
-            onApply
-          },
-          options
-        )
+        return observable(result, path, proxyCache, {
+          onGet,
+          onApply
+        })
       }
 
       return result
@@ -108,10 +99,6 @@ const createHandler = (proxyCache, { onGet, onApply }, options = {}) => {
     // },
 
     set: (target, key, value, receiver) => {
-      if (options.immutable) {
-        throw `Cannot mutate state \`${key}\`, as immutable option is set!`
-      }
-
       const previous = Reflect.get(target, key, receiver)
       const result = Reflect.set(target, key, value)
 

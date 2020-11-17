@@ -78,80 +78,6 @@ it('uses non-string argument as initial state', () => {
   expect(result.current).toEqual({ count: 0 })
 })
 
-describe('`immutable` option is `true`', () => {
-  it('cannot mutate state', () => {
-    const { result } = renderHook(() => useIbiza({ count: 0 }, { immutable: true }))
-
-    expect(() => {
-      hookAct(() => void result.current.count++)
-    }).toThrow()
-
-    expect(() => {
-      hookAct(() => void (result.current.name = 'Joel'))
-    }).toThrow()
-
-    expect(result.current).toEqual({ count: 0 })
-  })
-
-  it('re-renders on changed used state', async () => {
-    const App = () => {
-      const state = useIbiza({ count: 0 })
-      renderedItems.push(state.count)
-      return (
-        <>
-          <p>CountSetted is {state.count}</p>
-          <Count />
-          <button onClick={() => state.count++} />
-        </>
-      )
-    }
-
-    const Count = () => {
-      const count = useIbiza('count', { immutable: true })
-      return <p>CountGetted is {count}</p>
-    }
-
-    render(<App />)
-
-    screen.getByText('CountSetted is 0')
-    screen.getByText('CountGetted is 0')
-    expect(renderedItems).toEqual([0])
-
-    fireEvent.click(screen.getByRole('button'))
-
-    expect(renderedItems).toEqual([0, 1])
-    await screen.findByText('CountSetted is 1')
-    await screen.findByText('CountGetted is 1')
-  })
-
-  it('can return a non-object', () => {
-    const { result } = renderHook(() => {
-      useIbiza({ count: 0, page: 1 })
-      return useIbiza('count', { immutable: true })
-    })
-
-    expect(result.current).toEqual(0)
-  })
-
-  it('can return a nested non-object', () => {
-    const { result } = renderHook(() => {
-      useIbiza({ posts: { count: 0, page: 1 } })
-      return useIbiza('posts.count', { immutable: true })
-    })
-
-    expect(result.current).toEqual(0)
-  })
-
-  it('can return a nested object', () => {
-    const { result } = renderHook(() => {
-      useIbiza({ posts: { count: 0, pages: { page1: 'Yes' } } })
-      return useIbiza('posts.pages', { immutable: true })
-    })
-
-    expect(result.current).toEqual({ page1: 'Yes' })
-  })
-})
-
 it('can use a slice of the state', () => {
   renderHook(() => useIbiza({ my: { count: 0 }, even: { more: { count: 1 } } }))
 
@@ -754,6 +680,11 @@ describe('URL backed state', () => {
 
     spy.mockRestore()
   })
+
+  it.todo('can lazy fetch within a getter')
+  // get user() {
+  //   return this['/user']
+  // }
 
   it('lazy fetches are cached', async () => {
     const model = {
