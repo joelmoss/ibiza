@@ -687,7 +687,13 @@ describe('URL backed state', () => {
     expect(container.textContent).toMatchInlineSnapshot(`"Joel Moss"`)
   })
 
-  it('can predefine request functions', async () => {
+  it('lazy fetches', async () => {
+    const model = {
+      get ['/user']() {
+        return config.fetchFn(`/users/${this.userId}`)
+      }
+    }
+    const spy = jest.spyOn(model, '/user', 'get')
     function Section() {
       const data = useIbiza('/user')
       return (
@@ -697,12 +703,7 @@ describe('URL backed state', () => {
       )
     }
     const App = () => {
-      useIbiza({
-        userId: 1,
-        get ['/user']() {
-          return config.fetchFn(`/users/${this.userId}`)
-        }
-      })
+      useIbiza(Object.assign(model, { userId: 1 }))
       return (
         <Suspense fallback={<div>fallback</div>}>
           <Section />
@@ -715,9 +716,82 @@ describe('URL backed state', () => {
     expect(container.textContent).toMatchInlineSnapshot(`"fallback"`)
     await act(() => new Promise(res => setTimeout(res, 150)))
     expect(container.textContent).toMatchInlineSnapshot(`"#1:Joel Moss"`)
+
+    expect(spy).toHaveBeenCalledTimes(1)
+
+    spy.mockRestore()
   })
 
-  it('fetches only once', async () => {
+  it.todo('can return a slice of a fetch') // useIbiza('/user.name')
+
+  it('fetches are cached', async () => {
+    const spy = jest.spyOn(config, 'fetchFn')
+
+    function Section({ id }) {
+      const data = useIbiza('/user')
+      return <div>{data.name}</div>
+    }
+    function AnotherSection() {
+      const data = useIbiza('/user')
+      return <div>{data.name}</div>
+    }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <Section id={1} />
+          <Section id={2} />
+          <AnotherSection />
+        </Suspense>
+      )
+    }
+    const { container } = render(<App />)
+
+    expect(container.textContent).toMatchInlineSnapshot(`"fallback"`)
+    await act(() => new Promise(res => setTimeout(res, 150)))
+    expect(container.textContent).toMatchInlineSnapshot(`"Joel MossJoel MossJoel Moss"`)
+
+    expect(spy).toHaveBeenCalledTimes(1)
+
+    spy.mockRestore()
+  })
+
+  it('lazy fetches are cached', async () => {
+    const model = {
+      userId: 1,
+      get user() {
+        return 'a user!!'
+      },
+      get ['/user']() {
+        return config.fetchFn('/user')
+      }
+    }
+    const spy = jest.spyOn(model, '/user', 'get')
+
+    function Section() {
+      const data = useIbiza('/user')
+      return <div>{data.name}</div>
+    }
+    const App = () => {
+      useIbiza(model)
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <Section />
+          <Section />
+        </Suspense>
+      )
+    }
+    const { container } = render(<App />)
+
+    expect(container.textContent).toMatchInlineSnapshot(`"fallback"`)
+    await act(() => new Promise(res => setTimeout(res, 150)))
+    expect(container.textContent).toMatchInlineSnapshot(`"Joel MossJoel Moss"`)
+
+    expect(spy).toHaveBeenCalledTimes(1)
+
+    spy.mockRestore()
+  })
+
+  it('fetches only once even after rerenders', async () => {
     const spy = jest.spyOn(config, 'fetchFn')
 
     function Section() {
@@ -746,6 +820,8 @@ describe('URL backed state', () => {
     await screen.findByText('Count is 1')
 
     expect(spy).toHaveBeenCalledTimes(1)
+
+    spy.mockRestore()
   })
 
   it('handles render errors', async () => {

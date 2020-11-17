@@ -27,9 +27,10 @@ describe('observable', () => {
   })
 
   it('returns the same proxy when called repeatedly with the same argument', () => {
+    const proxyCache = new WeakMap()
     const obj = { prop: 'value' }
-    const obs1 = observable(obj, '', null)
-    const obs2 = observable(obj, '', null)
+    const obs1 = observable(obj, '', proxyCache)
+    const obs2 = observable(obj, '', proxyCache)
 
     expect(obs1).toBe(obs2)
   })

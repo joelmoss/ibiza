@@ -4,14 +4,10 @@ import { TARGET } from './store'
 
 export const subscribers = new Set()
 export const pathCache = new WeakMap()
-const intProxyCache = new WeakMap()
 const propCache = new WeakMap()
 
+// Creates a Proxy for the given `obj`, where the handler is defined with the given `callbacks`.
 const observable = (obj = {}, path, proxyCache, callbacks = {}, options = {}) => {
-  if (proxyCache === null) {
-    proxyCache = intProxyCache
-  }
-
   // Of obj is already a proxy, return it.
   if (obj === null || obj.isProxy) return obj
 
@@ -21,7 +17,7 @@ const observable = (obj = {}, path, proxyCache, callbacks = {}, options = {}) =>
   // ...otherwise create a new proxy.
   const proxy = new Proxy(obj, createHandler(proxyCache, callbacks, options))
 
-  // Build the path
+  // Build the selector path.
   pathCache.set(obj, path)
 
   // Cache the proxy

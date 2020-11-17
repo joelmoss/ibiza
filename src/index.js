@@ -38,7 +38,7 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
     name.current && console.log('useIbiza', `[${name.current}]`, ...args)
   }
 
-  debug('init', selectorPathOrInitialState)
+  // debug('init', selectorPathOrInitialState)
 
   // Builds the selectedPath and initialState variables from the selectedPathOrInitialState.
   const initialState = useRef(getInitialState(selectorPathOrInitialState))
@@ -118,8 +118,8 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
     [options.immutable]
   )
 
-  // Merge any initialState using an assign function that copies full descriptors, then delete it so
-  // we don't use it again.
+  // Merge any initialState with the store using an assign function that copies full descriptors,
+  // then delete it so we don't use it again.
   if (initialState.current) {
     completeAssign(store, initialState.current)
     initialState.current = null
@@ -131,22 +131,43 @@ export const useIbiza = (selectorPathOrInitialState, options = {}) => {
     if (selectorPath.current) {
       // Handle URL requests
       if (selectorPath.current.indexOf('/') === 0) {
-        // console.log(1, store, selectorPath.current)
-        // Find any existing state
+        // If the selectorPath is already defined in the store, then it will have been defined as
+        // initial state.
         if (Object.keys(store).includes(selectorPath.current)) {
           state = store[selectorPath.current]
 
-          if (typeof state.then === 'function') {
+          // Redefine the property so subsequent passes will return from the fetchCache.
+          Object.defineProperty(store, selectorPath.current, {
+            get() {
+              return fetchCache[selectorPath.current]
+            },
+            enumerable: true,
+            configurable: true
+          })
+
+          // Selected state is a Promise or a fetchCache.
+          if (typeof state.fetch !== 'undefined' || typeof state.then === 'function') {
             state = suspendedState(state, selectorPath.current)
           }
         } else {
-          // Otherwise fetch the given URL using suspense.
+          // Otherwise fetch the given URL using suspense. This will also habdle caching, and return
+          // the cached result if found. This should probably not be a separate cache.
           state = suspendedState(fetchFn, selectorPath.current)
         }
+
+        // Redefine the property as a data descriptor with the final value returned from the fetch.
+        Object.defineProperty(store, selectorPath.current, {
+          value: state,
+          enumerable: true,
+          writable: true,
+          configurable: true
+        })
       } else {
+        // Select the state from the store at the path defined as selectorPath.
         state = get(store, selectorPath.current)
       }
     } else {
+      // We have no selectorPath, so return the whole store.
       state = store
     }
 
