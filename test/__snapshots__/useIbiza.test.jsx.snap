@@ -1,0 +1,14 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`merges initial state 1`] = `
+Object {
+  "children": Array [],
+  "count": 0,
+  "count1": 0,
+  "foo": "bar",
+  "name": Object {
+    "firstName": "Ash",
+    "lastName": "Moss",
+  },
+}
+`;

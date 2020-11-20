@@ -11,7 +11,7 @@ store.user = {
   name: 'joel',
 
   get fullName() {
-    return this.name
+    return this.firstName + ' ' + this.lastName
   },
 
   set fullName(value) {
@@ -36,20 +36,35 @@ store.user = {
 
 // Read and write state with initial state
 const MyComponent = () => {
-  const state = useIbiza({ user: { name: 'Joel' } })
-  return <div>{state.user.name}</div>
+  const state = useIbiza({ user: { firstName: 'Joel' } })
+  return (
+    <>
+      <div>{state.user.firstName}</div>
+      <button onClick={() => void (state.user.firstName = 'Bob')}>Change name to Bob</button>
+    </>
+  )
 }
 
 // Read and write state from all state (root)
 const MyComponent = () => {
   const state = useIbiza()
-  return <div>{state.user.name}</div>
+  return (
+    <>
+      <div>{state.user.firstName}</div>
+      <button onClick={() => void (state.user.firstName = 'Bob')}>Change name to Bob</button>
+    </>
+  )
 }
 
 // Read and write from a state slice
 const MyComponent = () => {
-  const state = useIbiza('user')
-  return <div>{state.name}</div>
+  const user = useIbiza('user')
+  return (
+    <>
+      <div>{user.firstName}</div>
+      <button onClick={() => void (user.firstName = 'Bob')}>Change name to Bob</button>
+    </>
+  )
 }
 
 // Read and write from a state slice using context
@@ -61,8 +76,49 @@ const ParentComponent = () => {
   )
 }
 const ChildComponent = () => {
+  const user = useIbiza() // root is now `user`
+  return (
+    <>
+      <div>{user.firstName}</div>
+      <button onClick={() => void (user.firstName = 'Bob')}>Change name to Bob</button>
+    </>
+  )
+}
+
+// Setters and getters
+const MyComponent = () => {
   const state = useIbiza()
-  return <>{state.name}</>
+  return (
+    <>
+      <div>{state.user.fullName}</div>
+      <button onClick={() => void (state.user.fullName = 'Joel Moss')}>Set name</button>
+    </>
+  )
+}
+
+// Read and write from the server with React Suspense
+const MyComponent = () => {
+  const user = useIbiza('/user/1')
+  return (
+    <>
+      <div>{user.firstName}</div>
+      <button onClick={() => void (user.firstName = 'Joel')}>Set first name</button>
+    </>
+  )
+}
+// or...
+const MyComponent = () => {
+  const user = useIbiza({
+    get ['/user/1']() {
+      return fetch('/user/1')
+    }
+  })
+  return (
+    <>
+      <div>{user.firstName}</div>
+      <button onClick={() => void (user.firstName = 'Joel')}>Set first name</button>
+    </>
+  )
 }
 ```
 

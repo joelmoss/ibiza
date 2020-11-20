@@ -22,6 +22,8 @@
     },
     "testPathIgnorePatterns": [
       "<rootDir>/example/",
+      "<rootDir>/src-old/",
+      "<rootDir>/test-old/",
       "<rootDir>/node_modules/"
     ],
     "transformIgnorePatterns": [
@@ -66,8 +68,7 @@
     "trailingComma": "none"
   },
   "wallaby": {
-    "reportConsoleErrorAsError": true,
-    "runMode": "onsave"
+    "reportConsoleErrorAsError": true
   },
   "peerDependencies": {
     "react": ">=16.8"

@@ -3,11 +3,13 @@ import { compact } from 'lodash'
 import { TARGET } from './store'
 
 export const subscribers = new Set()
-export const pathCache = new WeakMap()
+const pathCache = new WeakMap()
 const propCache = new WeakMap()
 
 // Creates a Proxy for the given `obj`, where the handler is defined with the given `callbacks`.
-const observable = (obj = {}, path, proxyCache, callbacks = {}) => {
+const observable = (obj = {}, path, proxyCache, callbacks = {}, options = {}) => {
+  options.debug && options.debug('observable', { obj, path })
+
   // Of obj is already a proxy, return it.
   if (obj === null || obj.isProxy) return obj
 
