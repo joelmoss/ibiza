@@ -4,48 +4,50 @@ import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
-  const state = useIbiza(
-    {
-      firstName: '1Bob',
-      lastName: 'Bones',
-      age: 20,
-      get fullName() {
-        return [this.firstName, this.lastName].join(' ')
-      },
-      myFunc: function (state) {
-        console.debug('state.myFunc()', { state })
-        state.age = 22
-      },
-      partner: {
-        firstName: '2Bob'
-      },
-      nested: { children: [{ name: 'Ash' }, { name: 'Elijah' }] }
-    },
-    'App'
-  )
+  const state = useIbiza(null, true)
+  // const state = useIbiza(
+  //   {
+  //     firstName: '1Bob',
+  //     lastName: 'Bones',
+  //     age: 20,
+  //     get fullName() {
+  //       return [this.firstName, this.lastName].join(' ')
+  //     },
+  //     myFunc: function (state) {
+  //       console.debug('state.myFunc()', { state })
+  //       state.age = 22
+  //     },
+  //     partner: {
+  //       firstName: '2Bob'
+  //     },
+  //     nested: { children: [{ name: 'Ash' }, { name: 'Elijah' }] }
+  //   },
+  //   'App'
+  // )
 
   const incCount = useCallback(() => {
     setCount(x => x + 1)
   }, [])
 
-  const setAge = useCallback(() => {
-    state.age = 21
+  const setNuffin = useCallback(() => {
+    state.nuffin = 'something'
   }, [state])
 
   return (
     <Suspense fallback={<div>fallback...</div>}>
       <h2>Count {count}</h2>
       {/* <h2>myArray = {state.myArray.join('-')}</h2> */}
+      <h2>Nuffin:[{state.nuffin}]</h2>
       {/* <h2>My firstName {state.firstName}</h2> */}
       {/* <h2>Partner age {state.partner.age}</h2> */}
       {/* <h2>My age {state.age}</h2> */}
       {/* <h2>partner.foo2 {state.partner.foo2}</h2> */}
-      <button onClick={incCount}>Increment count</button>
+      <button onClick={setNuffin}>Set nuffin</button>
       {/* <button onClick={state.myFunc}>Set age</button> */}
       {/* <Partner /> */}
       {/* <FirstName /> */}
       {/* <FullName /> */}
-      <Children />
+      {/* <Children /> */}
     </Suspense>
   )
 }

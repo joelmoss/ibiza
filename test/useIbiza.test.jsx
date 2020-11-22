@@ -89,7 +89,7 @@ it('handles null/undefined props', () => {
 
 it('null/undefined props should be watched, and mutations cause a re-render', async () => {
   const App = () => {
-    const state = useIbiza()
+    const state = useIbiza(null)
     return <h1>Count is [{state.count}]</h1>
   }
 
@@ -97,6 +97,8 @@ it('null/undefined props should be watched, and mutations cause a re-render', as
   render(<App />)
 
   screen.getByText('Count is []')
+
+  await wait(() => expect(renderCount.current.App.value).toBe(1))
 
   act(() => {
     store.state.count = 1
@@ -574,7 +576,7 @@ describe('slicing', () => {
         let state = useIbiza('nested')
         const changeName = useCallback(() => {
           state.name = 'Ash'
-        }, [])
+        }, [state])
         return (
           <>
             <h1>App[{state.name}]</h1>

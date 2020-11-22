@@ -14,7 +14,7 @@ export default (initialStateOrSlice = {}, debugName = false) => {
   const [, forceRender] = useReducer(s => s + 1, 0)
   const usedPathsRef = useRef([])
   const slicePathRef = useRef()
-  const initialStateOrSliceRef = useRef(initialStateOrSlice)
+  const initialStateOrSliceRef = useRef(initialStateOrSlice === null ? {} : initialStateOrSlice)
 
   const addUsedPath = useCallback((path, debugInfo) => {
     if (!usedPathsRef.current.includes(path)) {
@@ -125,7 +125,10 @@ export default (initialStateOrSlice = {}, debugName = false) => {
 
         // TODO: Ignore any non-own properties while allowing undefined properties. This will
         // currently ignore both :(
-        if (!target.hasOwnProperty(prop)) return Reflect.get(...arguments)
+        // console.debug(prop, target.__proto__[prop])
+        if (!target.hasOwnProperty(prop) && target.__proto__[prop]) {
+          return Reflect.get(...arguments)
+        }
 
         debugRef.current &&
           console.debug('%s preGet %o', debugRef.current, {
@@ -135,12 +138,7 @@ export default (initialStateOrSlice = {}, debugName = false) => {
           })
 
         // Call `get` on the actual store state.
-        const result = Reflect.get(target, prop, { receiver, onGet })
-        // console.log(target.isProxy, { result })
-
-        return typeof result !== 'undefined' && result !== null && result.isProxy
-          ? new Proxy(result, handler)
-          : result
+        return Reflect.get(target, prop, { receiver, onGet })
       }
     }
 
