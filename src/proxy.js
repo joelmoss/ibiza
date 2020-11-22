@@ -117,6 +117,17 @@ const proxify = obj => {
         store.publishSet({ target, prop, path, previousValue, value, isChanged })
 
       return result
+    },
+
+    deleteProperty: function (target, prop) {
+      let path = target.__path
+      path = path === null ? prop : [path, prop].join('.')
+
+      const result = Reflect.deleteProperty(target, prop)
+
+      result && store.publishSet({ target, prop, path })
+
+      return result
     }
 
     // apply: function () {

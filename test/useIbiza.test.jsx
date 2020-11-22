@@ -127,6 +127,70 @@ it('can set nested state', () => {
   expect(result.current).toEqual({ count: 0, nested: { count: 1 } })
 })
 
+describe('arrays', () => {
+  it('add element', async () => {
+    store.merge({ children: [{ name: 'Ash' }] })
+
+    const App = () => {
+      const state = useIbiza()
+      return (
+        <ul>
+          {state.children.map((child, i) => (
+            <li key={i}>Child[{child.name}]</li>
+          ))}
+        </ul>
+      )
+    }
+
+    const { renderCount } = perf(React)
+    render(<App />)
+    screen.getByText('Child[Ash]')
+
+    await wait(() => expect(renderCount.current.App.value).toBe(1))
+
+    act(() => {
+      store.state.children.push({ name: 'Elijah' })
+    })
+
+    await screen.findByText('Child[Ash]')
+    await screen.findByText('Child[Elijah]')
+
+    await wait(() => expect(renderCount.current.App.value).toBe(2))
+  })
+
+  it('remove element', async () => {
+    store.merge({ children: [{ name: 'Ash' }, { name: 'Elijah' }] })
+
+    const App = () => {
+      const state = useIbiza()
+      return (
+        <ul>
+          {state.children.map((child, i) => (
+            <li key={i}>Child[{child.name}]</li>
+          ))}
+        </ul>
+      )
+    }
+
+    const { renderCount } = perf(React)
+    const { container } = render(<App />)
+
+    screen.getByText('Child[Ash]')
+    screen.getByText('Child[Elijah]')
+
+    await wait(() => expect(renderCount.current.App.value).toBe(1))
+
+    act(() => {
+      delete store.state.children[1]
+    })
+
+    await screen.findByText('Child[Ash]')
+    expect(container).not.toHaveTextContent('Child[Elijah]')
+
+    await wait(() => expect(renderCount.current.App.value).toBe(2))
+  })
+})
+
 it('re-renders on changed used state', async () => {
   const App = () => {
     const state = useIbiza({ count: 0 })
@@ -330,6 +394,342 @@ test('getter', async () => {
   await screen.findByText('Name is Ash Moss')
   await wait(() => expect(renderCount.current.App.value).toBe(2))
 })
+
+describe('slicing', () => {
+  describe('read', () => {
+    it('throws on get of single property', () => {
+      store.merge({ firstName: 'Joel' })
+
+      const App = () => {
+        const firstName = useIbiza('firstName')
+        return <h1>{firstName}</h1>
+      }
+
+      expect(() => {
+        render(<App />)
+      }).toThrow()
+    })
+
+    it('throws on get of nested single property', () => {
+      store.merge({ nested: { firstName: 'Joel' } })
+
+      const App = () => {
+        const firstName = useIbiza('nested.firstName')
+        return <h1>{firstName}</h1>
+      }
+
+      expect(() => {
+        render(<App />)
+      }).toThrow()
+    })
+
+    it('throws on get of function', () => {
+      store.merge({ nested: { eatTheWorld: () => {} } })
+
+      const App = () => {
+        const eatTheWorld = useIbiza('nested.eatTheWorld')
+        return <h1>Hello</h1>
+      }
+
+      expect(() => {
+        render(<App />)
+      }).toThrow()
+    })
+
+    it('throws on get of getter', () => {
+      store.merge({ nested: { get eatTheWorld() {} } })
+
+      const App = () => {
+        const eatTheWorld = useIbiza('nested.eatTheWorld')
+        return <h1>Hello</h1>
+      }
+
+      expect(() => {
+        render(<App />)
+      }).toThrow()
+    })
+
+    it('object', () => {
+      store.merge({ firstName: 'Joel', children: [{ firstName: 'Ash' }, { firstName: 'Elijah' }] })
+
+      const { result } = renderHook(() => useIbiza('children.1'))
+
+      expect(result.current).toEqual({ firstName: 'Elijah' })
+      expect(result.current.isProxy).toBe(true)
+    })
+
+    it('function', () => {
+      const mockFn = jest.fn()
+      store.merge({ nested: { eatTheWorld: mockFn } })
+
+      const App = () => {
+        const state = useIbiza('nested')
+        return (
+          <>
+            <button onClick={state.eatTheWorld}>eatTheWorld</button>
+          </>
+        )
+      }
+
+      render(<App />)
+
+      fireEvent.click(screen.getByRole('button'))
+
+      expect(mockFn).toBeCalledTimes(1)
+    })
+
+    it('getter', () => {
+      const model = {
+        nested: {
+          get eatTheWorld() {
+            return 'World'
+          }
+        }
+      }
+      const spy = jest.spyOn(model.nested, 'eatTheWorld', 'get')
+      store.merge(model)
+
+      const App = () => {
+        const state = useIbiza('nested')
+        return <>Hello {state.eatTheWorld}</>
+      }
+
+      render(<App />)
+
+      screen.getByText('Hello World')
+      expect(spy).toBeCalledTimes(1)
+    })
+
+    it('array', () => {
+      store.merge({ name: 'Joel', nested: { children: [{ name: 'Ash' }, { name: 'Elijah' }] } })
+
+      const App = () => {
+        const state = useIbiza('nested.children')
+        return (
+          <ul>
+            {state.map((child, i) => (
+              <li key={i}>Child {child.name}</li>
+            ))}
+          </ul>
+        )
+      }
+
+      render(<App />)
+
+      screen.getByText('Child Ash')
+      screen.getByText('Child Elijah')
+    })
+  })
+
+  describe('mutation', () => {
+    it.skip('single property from outside component', async () => {
+      store.merge({ firstName: 'Joel' })
+
+      const App = () => {
+        const firstName = useIbiza('firstName')
+        return <h1>Hello {firstName}</h1>
+      }
+
+      render(<App />)
+
+      screen.getByText('Hello Joel')
+
+      act(() => {
+        store.state.firstName = 'Ash'
+      })
+
+      await screen.findByText('Hello Ash')
+    })
+
+    it.skip('single property from inside component', async () => {
+      store.merge({ firstName: 'Joel' })
+
+      const App = () => {
+        let firstName = useIbiza('firstName')
+        const changeName = useCallback(() => {
+          // Must use `store`.
+          store.state.firstName = 'Ash'
+        }, [])
+        return (
+          <>
+            <h1>Hello {firstName}</h1>
+            <button onClick={changeName}>Change name</button>
+          </>
+        )
+      }
+
+      render(<App />)
+
+      screen.getByText('Hello Joel')
+
+      fireEvent.click(screen.getByRole('button'))
+
+      await screen.findByText('Hello Ash')
+    })
+
+    it('nested property should rerender', async () => {
+      store.merge({ nested: { name: 'Joel' } })
+
+      const App = () => {
+        let state = useIbiza('nested')
+        const changeName = useCallback(() => {
+          state.name = 'Ash'
+        }, [])
+        return (
+          <>
+            <h1>App[{state.name}]</h1>
+            <button onClick={changeName}>Change name</button>
+          </>
+        )
+      }
+
+      const { renderCount } = perf(React)
+      render(<App />)
+
+      screen.getByText('App[Joel]')
+
+      fireEvent.click(screen.getByRole('button'))
+
+      await screen.findByText('App[Ash]')
+      await wait(() => expect(renderCount.current.App.value).toBe(2))
+    })
+
+    it.skip('should rerender only component use', async () => {
+      store.merge({ nested: { count: 0 } })
+
+      const Sibling1 = () => {
+        const count = useIbiza('nested.count')
+        return <h2>Sibling1[{count}]</h2>
+      }
+      const Sibling2 = () => {
+        const count = useIbiza('nested.count')
+        return <h2>Sibling2[{count}]</h2>
+      }
+      const App = () => {
+        let state = useIbiza('nested')
+        console.log(state)
+        const increment = useCallback(() => {
+          state.count = 1
+        }, [state])
+        return (
+          <>
+            <h1>App[]</h1>
+            {/* <Sibling1 /> */}
+            {/* <Sibling2 /> */}
+            <button onClick={increment}>Increment</button>
+          </>
+        )
+      }
+
+      const { renderCount } = perf(React)
+      render(<App />)
+
+      screen.getByText('App[]')
+      // screen.getByText('Sibling1[0]')
+      // screen.getByText('Sibling2[0]')
+
+      fireEvent.click(screen.getByRole('button'))
+
+      await screen.findByText('App[]')
+      // await screen.findByText('Sibling1[1]')
+      // await screen.findByText('Sibling2[1]')
+      await wait(() => expect(renderCount.current.App.value).toBe(1))
+      await wait(() => expect(renderCount.current.Sibling1.value).toBe(2))
+      // await wait(() => expect(renderCount.current.Sibling2.value).toBe(2))
+    })
+
+    it('nested', async () => {
+      store.merge({ name: 'Joel', child: { name: 'Ash' } })
+
+      const App = () => {
+        let child = useIbiza('child')
+        const changeName = useCallback(() => {
+          child.name = 'Eve'
+        }, [child])
+        return (
+          <>
+            <h1>Hello {child.name}</h1>
+            <button onClick={changeName}>Change name</button>
+          </>
+        )
+      }
+
+      render(<App />)
+
+      screen.getByText('Hello Ash')
+
+      fireEvent.click(screen.getByRole('button'))
+
+      await screen.findByText('Hello Eve')
+    })
+
+    it.skip('array', async () => {
+      store.merge({ name: 'Joel', children: [{ name: 'Ash' }, { name: 'Elijah' }] })
+
+      const App = () => {
+        let name = useIbiza('children.0.name')
+        const changeName = useCallback(() => {
+          // Must use `store`.
+          store.state.children[0].name = 'Eve'
+        }, [])
+        return (
+          <>
+            <h1>Hello {name}</h1>
+            <button onClick={changeName}>Change name</button>
+          </>
+        )
+      }
+
+      render(<App />)
+
+      screen.getByText('Hello Ash')
+
+      fireEvent.click(screen.getByRole('button'))
+
+      console.log(store.state)
+
+      await screen.findByText('Hello Eve')
+    })
+
+    it.skip('getter dependency', async () => {
+      const model = {
+        user: {
+          firstName: 'Joel',
+          lastName: 'Moss',
+          get fullName() {
+            return [this.firstName, this.lastName].join(' ')
+          }
+        }
+      }
+      const spy = jest.spyOn(model.user, 'fullName', 'get')
+      store.merge(model)
+
+      const App = () => {
+        const fullName = useIbiza('user.fullName')
+        return <h1>fullName[{fullName}]</h1>
+      }
+
+      render(<App />)
+
+      screen.getByText('fullName[Joel Moss]')
+      expect(spy).toHaveBeenCalledTimes(1)
+
+      act(() => {
+        store.state.user.firstName = 'Ash'
+      })
+
+      await screen.findByText('fullName[Ash Moss]')
+    })
+
+    it.todo('Mutating nested state should not re-render sibling comp')
+  })
+})
+
+it.todo(
+  'Mutating nested state in parent comp that only child uses should not cause parent comp to watch parent state.'
+)
+
+it.todo('Defining new object on state should cause re-render')
 
 it('tracks changes in destructured state', async () => {
   const App = () => {
@@ -548,5 +948,39 @@ describe('functions (actions)', () => {
     expect(store.state.count).toBe(2)
 
     await waitFor(() => expect(renderCount.current.App.value).toEqual(3))
+  })
+})
+
+describe.skip('URL backed state', () => {
+  // config.fetchFn = path => {
+  //   const url = new URL(path, 'http://localhost')
+  //   const resource = new Request(url)
+  //   return fetch(resource).then(response => {
+  //     if (!response.ok) {
+  //       throw `Error (${response.status})`
+  //     }
+
+  //     return response.json()
+  //   })
+  // }
+
+  it('fetches from the server', async () => {
+    function Section() {
+      const data = useIbiza('/user')
+      return <div>{data.name}</div>
+    }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <Section />
+        </Suspense>
+      )
+    }
+
+    const { container } = render(<App />)
+
+    expect(container.textContent).toMatchInlineSnapshot(`"fallback"`)
+    await act(() => new Promise(res => setTimeout(res, 150)))
+    expect(container.textContent).toMatchInlineSnapshot(`"Joel Moss"`)
   })
 })
