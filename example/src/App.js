@@ -1,101 +1,95 @@
-import { Suspense, useCallback, useState } from 'react'
-import { useIbiza } from 'ibiza'
+import { useCallback, useState } from 'react'
+import { useIbiza, store } from 'ibiza'
 import './App.css'
+
+store.fetchFn = path => {
+  const url = new URL(path, 'https://jsonplaceholder.typicode.com')
+  const resource = new Request(url)
+  return fetch(resource).then(response => {
+    if (!response.ok) {
+      throw new Error(`Error (${response.status})`)
+    }
+
+    return response.json()
+  })
+}
+
+const model = {
+  userId: 1,
+  get user() {
+    const users = this['/users']
+    console.log('this', this)
+    return users && users.find(u => u.id === this.userId)
+  }
+}
+
+store.merge(model)
 
 function App() {
   const [count, setCount] = useState(0)
-  const state = useIbiza(null, true)
-  // const state = useIbiza(
-  //   {
-  //     firstName: '1Bob',
-  //     lastName: 'Bones',
-  //     age: 20,
-  //     get fullName() {
-  //       return [this.firstName, this.lastName].join(' ')
-  //     },
-  //     myFunc: function (state) {
-  //       console.debug('state.myFunc()', { state })
-  //       state.age = 22
-  //     },
-  //     partner: {
-  //       firstName: '2Bob'
-  //     },
-  //     nested: { children: [{ name: 'Ash' }, { name: 'Elijah' }] }
-  //   },
-  //   'App'
-  // )
+  // const users = useIbiza('/users', '/users')
+  // console.log({ users })
 
   const incCount = useCallback(() => {
-    setCount(x => x + 1)
+    // setCount(x => x + 1)
+    ++store.count
   }, [])
 
-  const setNuffin = useCallback(() => {
-    state.nuffin = 'something'
-  }, [state])
-
   return (
-    <Suspense fallback={<div>fallback...</div>}>
-      <h2>Count {count}</h2>
-      {/* <h2>myArray = {state.myArray.join('-')}</h2> */}
-      <h2>Nuffin:[{state.nuffin}]</h2>
-      {/* <h2>My firstName {state.firstName}</h2> */}
-      {/* <h2>Partner age {state.partner.age}</h2> */}
-      {/* <h2>My age {state.age}</h2> */}
-      {/* <h2>partner.foo2 {state.partner.foo2}</h2> */}
-      <button onClick={setNuffin}>Set nuffin</button>
-      {/* <button onClick={state.myFunc}>Set age</button> */}
-      {/* <Partner /> */}
-      {/* <FirstName /> */}
-      {/* <FullName /> */}
-      {/* <Children /> */}
-    </Suspense>
+    <>
+      <h2>useState(Count) {count}</h2>
+      <User />
+      {/* <Section /> */}
+
+      {/* <p>Hello {user.name}</p> */}
+
+      {/* <ul>
+        {users.map(user => (
+          <li key={user.id}>
+            #{user.id} {user.name} ({user.company.name})
+          </li>
+        ))}
+      </ul> */}
+
+      <button onClick={incCount}>Increment useState(count)</button>
+    </>
   )
 }
 
-const Children = () => {
-  const state = useIbiza('nested', 'Children')
-  const removeChild = useCallback(() => {
-    delete state.children[1]
-  }, [state])
-  const addChild = useCallback(() => {
-    state.children.push({ name: Math.random() })
-  }, [state])
+const User = () => {
+  const { user } = useIbiza(null, 'User')
+  console.log({ user })
+
+  if (!user) return null
+
+  return <>Section: {user.name}</>
+}
+
+const model2 = {
+  get user() {
+    console.log(this['/users'])
+    return this['/users'].find(x => x.id === this.userId)
+  }
+}
+const Users = () => {
+  // const state = useIbiza(model2, 'Users(user)')
+  const users = useIbiza('/users', 'Users')
+
   return (
     <>
+      <h1>Users</h1>
+      {/* <h4>Current userId #{state.userId}</h4> */}
+      {/* <h4>Current user {state.user}</h4> */}
+
       <ul>
-        {state.children.map((child, i) => (
-          <li key={i}>Child {child.name}</li>
+        {users.map(user => (
+          <li key={user.id}>
+            #{user.id} {user.name} ({user.company.name})
+          </li>
         ))}
       </ul>
-      <button onClick={removeChild}>Remove child</button>
-      <button onClick={addChild}>Add child</button>
     </>
   )
-}
-
-const Partner = () => {
-  let partner = useIbiza('partner', 'Partner')
-
-  const setPartnerFirstName = useCallback(() => {
-    partner.firstName = 'Joel'
-  }, [partner])
-
-  return (
-    <>
-      <h4>state.partner.firstName: {partner.firstName}</h4>
-      <button onClick={setPartnerFirstName}>Set partner first name</button>
-    </>
-  )
-}
-
-const FirstName = () => {
-  const firstName = useIbiza('firstName', 'FirstName')
-  return <h4>state.firstName: {firstName}</h4>
-}
-
-const FullName = () => {
-  const fullName = useIbiza('fullName', 'FullName')
-  return <h4>state.fullName: {fullName}</h4>
 }
 
 export default App

@@ -1,7 +1,8 @@
 // Recursively merge `src` into `target`, while proxifying any objects. Arrays are replaced, and
 
 import { compact, isArray, isPlainObject } from 'lodash'
-import { store } from './index'
+import store from './store'
+import suspendedState from './suspendedState'
 
 // getters/setters copied.
 export function proxyMerge(target, src, parentPath = null) {
@@ -68,6 +69,12 @@ const proxify = obj => {
   const proxy = new Proxy(obj, {
     get: function (target, prop, receiver) {
       if (prop === 'isProxy') return true
+
+      // If prop is a URL, fetch it now and set the prop.
+      if (typeof prop === 'string' && prop.indexOf('/') === 0) {
+        const response = suspendedState(store.fetchFn, prop)
+        Reflect.set(target, prop, response)
+      }
 
       const receiverProps = Object.getOwnPropertyNames(receiver)
       let onGet = undefined

@@ -35,7 +35,7 @@ function getShallowProperty(obj, prop) {
     if (!descriptor.hasOwnProperty('value') || typeof descriptor.value !== 'object') {
       throw (
         '[Ibiza] You requested a slice that is not an object, which Ibiza cannot track. ' +
-        'Instead you should return the parent object taht contains the wanted slice.'
+        'Instead you should return the parent object that contains the wanted slice.'
       )
     }
 

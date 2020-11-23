@@ -1,19 +1,19 @@
 import { get, isPlainObject } from 'lodash'
-import { useCallback, useMemo, useReducer, useRef } from 'react'
+import { useEffect, useCallback, useMemo, useReducer, useRef } from 'react'
 
 import { getByPath } from './path'
 import store from './store'
+import suspendedState from './suspendedState'
 
 // Initial state is the state used during the initial render. In subsequent renders, it is
 // disregarded. So it should not be dynamic.
 export default (initialStateOrSlice = {}, debugName = false) => {
   const debugRef = useRef(debugName && (debugName === true ? '[Ibiza]' : `[Ibiza #${debugName}]`))
 
-  // debugRef.current && console.log('%s Rendering', debugRef.current)
-
   const [, forceRender] = useReducer(s => s + 1, 0)
   const usedPathsRef = useRef([])
   const slicePathRef = useRef()
+  const fetchResponseRef = useRef()
   const initialStateOrSliceRef = useRef(initialStateOrSlice === null ? {} : initialStateOrSlice)
 
   const addUsedPath = useCallback((path, debugInfo) => {
@@ -66,9 +66,20 @@ export default (initialStateOrSlice = {}, debugName = false) => {
     }
   }, [])
 
+  useEffect(() => {
+    // If a URL was fetched, its response needs to be added to the state, but only after render to
+    // avoid components updating at the wrong time, or when rendering others.
+    if (fetchResponseRef.current) {
+      debugRef.current &&
+        console.debug('%s Fetched %o successfully', debugRef.current, slicePathRef.current)
+
+      store.state[slicePathRef.current] = fetchResponseRef.current
+    }
+  })
+
   // We need to return a hook specific version of the store state, so that when the proxy get
   // trap is called, it can record usage of the trapped property, but on the hook. If we don't make
-  // it specific to the hook, then all hooks will be subscribed the the trapped property's changes.
+  // it specific to the hook, then all hooks will be subscribed to the trapped property's changes.
   // Only components that actually read a state property should cause the hook to listen for changes
   // on that property.
   //
@@ -90,31 +101,31 @@ export default (initialStateOrSlice = {}, debugName = false) => {
       } else if (typeof initialStateOrSliceRef.current === 'string') {
         // We have a request for a slice of the state. Slices can be a dot seperated path to the
         // property you want (eg. 'my.slice.of.state'), or a relative URL (eg. '/users/1').
-        if (initialStateOrSliceRef.current.indexOf('/') === 0) {
-          // TODO: URL
-        } else {
-          // const slicePath = initialStateOrSliceRef.current.split('.')
-          // const sliceProp = slicePath[slicePath.length - 1]
-          // const sliceParentPath = slicePath.slice(0, -1)
+        debugRef.current &&
+          console.log('%s Slice %o', debugRef.current, initialStateOrSliceRef.current)
 
-          // Find the property at the given path. This does so without actually calling the
-          // property, which needs to happen to avoid the get trap and getters being called until
-          // actually needed.
-          // slice = getByPath(store.state, initialStateOrSliceRef.current)
+        // Manually add the slice object path to `usedPaths`.
+        addUsedPath(initialStateOrSliceRef.current)
 
-          debugRef.current &&
-            console.log('%s Slice %o', debugRef.current, initialStateOrSliceRef.current)
+        slicePathRef.current = initialStateOrSliceRef.current
 
-          // Manually add the slice object path to `usedPaths`.
-          addUsedPath(initialStateOrSliceRef.current)
+        // Get property by the slice
+        objToProxy = getByPath(store.state, slicePathRef.current)
 
-          slicePathRef.current = initialStateOrSliceRef.current
-          objToProxy = getByPath(store.state, initialStateOrSliceRef.current)
+        // If returned proxy is null/undefined and slice is a URL. Fetch and suspend now.
+        if (!objToProxy && slicePathRef.current.indexOf('/') === 0) {
+          fetchResponseRef.current = suspendedState(
+            store.fetchFn,
+            slicePathRef.current,
+            debugRef.current
+          )
+
+          objToProxy = fetchResponseRef.current
         }
       }
     }
 
-    initialStateOrSliceRef.current = null
+    // initialStateOrSliceRef.current = null
 
     const handler = {
       get: function (target, prop, receiver) {
@@ -123,9 +134,7 @@ export default (initialStateOrSlice = {}, debugName = false) => {
         // Ignore any symbols.
         if (typeof prop === 'symbol') return Reflect.get(...arguments)
 
-        // TODO: Ignore any non-own properties while allowing undefined properties. This will
-        // currently ignore both :(
-        // console.debug(prop, target.__proto__[prop])
+        // Ignore any non-own properties while allowing undefined properties.
         if (!target.hasOwnProperty(prop) && target.__proto__[prop]) {
           return Reflect.get(...arguments)
         }
@@ -134,6 +143,7 @@ export default (initialStateOrSlice = {}, debugName = false) => {
           console.debug('%s preGet %o', debugRef.current, {
             prop,
             target,
+            usedPaths: usedPathsRef.current,
             slice: slicePathRef.current
           })
 
@@ -148,7 +158,7 @@ export default (initialStateOrSlice = {}, debugName = false) => {
   // Listen for changes. Listeners are Set's, so they will always be unique - no need to de-dupe!
   store.listenOnSet(onSet)
 
-  debugRef.current && console.debug('%s Store', debugRef.current, proxy)
+  debugRef.current && console.debug('%s Store', debugRef.current, store.state)
 
   return proxy
 }

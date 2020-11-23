@@ -953,23 +953,27 @@ describe('functions (actions)', () => {
   })
 })
 
-describe.skip('URL backed state', () => {
-  // config.fetchFn = path => {
-  //   const url = new URL(path, 'http://localhost')
-  //   const resource = new Request(url)
-  //   return fetch(resource).then(response => {
-  //     if (!response.ok) {
-  //       throw `Error (${response.status})`
-  //     }
+describe('URL backed state', () => {
+  const fetchSpy = jest.fn()
+  store.fetchFn = path => {
+    fetchSpy()
 
-  //     return response.json()
-  //   })
-  // }
+    const url = new URL(path, location.origin)
+    const resource = new Request(url)
+
+    return fetch(resource).then(response => {
+      if (!response.ok) {
+        throw new Error(`Error (${response.status})`)
+      }
+
+      return response.json()
+    })
+  }
 
   it('fetches from the server', async () => {
     function Section() {
-      const data = useIbiza('/user')
-      return <div>{data.name}</div>
+      const user = useIbiza('/user')
+      return <div>{user.name}</div>
     }
     const App = () => {
       return (
@@ -984,5 +988,6 @@ describe.skip('URL backed state', () => {
     expect(container.textContent).toMatchInlineSnapshot(`"fallback"`)
     await act(() => new Promise(res => setTimeout(res, 150)))
     expect(container.textContent).toMatchInlineSnapshot(`"Joel Moss"`)
+    expect(fetchSpy).toBeCalledTimes(1)
   })
 })

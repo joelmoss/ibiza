@@ -5,6 +5,8 @@ class IbizaStore {
   constructor() {
     this.state = {}
     this.setListeners = new Set()
+    this.fetches = new Map()
+    this.mergedObjects = new WeakMap()
   }
 
   // Recursively merge the given `obj` into the store, ensuring that each level of the object is
@@ -14,7 +16,11 @@ class IbizaStore {
       throw new TypeError('IbizaStore#merge expects a plain object to merge')
     }
 
-    this.state = proxyMerge(this.state, obj)
+    // Don't merge if `obj` has already been merged.
+    if (!this.mergedObjects.has(obj)) {
+      this.mergedObjects.set(obj, true)
+      this.state = proxyMerge(this.state, obj)
+    }
   }
 
   listenOnSet(setFn) {
@@ -31,6 +37,27 @@ class IbizaStore {
     this.state = {}
     this.setListeners = new Set()
   }
+
+  get fetchFn() {
+    return this.customFetchFn || defaultFetchFn
+  }
+
+  set fetchFn(fn) {
+    this.customFetchFn = fn
+  }
+}
+
+const defaultFetchFn = path => {
+  const url = new URL(path, location.origin)
+  const resource = new Request(url)
+
+  return fetch(resource).then(response => {
+    if (!response.ok) {
+      throw new Error(`Error (${response.status})`)
+    }
+
+    return response.json()
+  })
 }
 
 // Initialize the store as a Proxy.
