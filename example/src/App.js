@@ -1,7 +1,9 @@
-import { useCallback, useState } from 'react'
+// import { useCallback, useState } from 'react'
 import { useIbiza, store } from 'ibiza'
+import { useCallback } from 'react'
 import './App.css'
 
+store.debug = true
 store.fetchFn = path => {
   const url = new URL(path, 'https://jsonplaceholder.typicode.com')
   const resource = new Request(url)
@@ -16,80 +18,64 @@ store.fetchFn = path => {
 
 const model = {
   userId: 1,
+  users: [{ username: 'Joel' }, { username: 'Ash' }],
+
   get user() {
     const users = this['/users']
-    console.log('this', this)
-    return users && users.find(u => u.id === this.userId)
+
+    users.find(u => {
+      console.log({ user: u })
+
+      return false
+    })
+
+    return {}
+  },
+
+  setUser: async function (state) {
+    const response = await fetch('https://jsonplaceholder.typicode.com/users/1', {
+      method: 'PUT',
+      body: JSON.stringify({
+        username: 'joel'
+      }),
+      headers: {
+        'Content-type': 'application/json; charset=UTF-8'
+      }
+    }).then(response => {
+      if (!response.ok) {
+        throw new Error(`Error (${response.status})`)
+      }
+
+      return response.json()
+    })
+
+    state['/users/1'] = response
   }
 }
 
 store.merge(model)
 
 function App() {
-  const [count, setCount] = useState(0)
-  // const users = useIbiza('/users', '/users')
-  // console.log({ users })
+  const state = useIbiza(null, '<App>')
 
-  const incCount = useCallback(() => {
-    // setCount(x => x + 1)
-    ++store.count
-  }, [])
+  const createPartner = useCallback(() => {
+    state.partner = { name: 'partner1' }
+  }, [state])
 
   return (
     <>
-      <h2>useState(Count) {count}</h2>
       <User />
-      {/* <Section /> */}
-
-      {/* <p>Hello {user.name}</p> */}
-
-      {/* <ul>
-        {users.map(user => (
-          <li key={user.id}>
-            #{user.id} {user.name} ({user.company.name})
-          </li>
-        ))}
-      </ul> */}
-
-      <button onClick={incCount}>Increment useState(count)</button>
+      <h2>Partner: {state.partner && state.partner.name}</h2>
+      <button onClick={createPartner}>createPartner</button>
+      <button onClick={state.setUser}>Set user</button>
     </>
   )
 }
 
 const User = () => {
-  const { user } = useIbiza(null, 'User')
-  console.log({ user })
+  const user = useIbiza('user', '<User>')
 
-  if (!user) return null
-
-  return <>Section: {user.name}</>
-}
-
-const model2 = {
-  get user() {
-    console.log(this['/users'])
-    return this['/users'].find(x => x.id === this.userId)
-  }
-}
-const Users = () => {
-  // const state = useIbiza(model2, 'Users(user)')
-  const users = useIbiza('/users', 'Users')
-
-  return (
-    <>
-      <h1>Users</h1>
-      {/* <h4>Current userId #{state.userId}</h4> */}
-      {/* <h4>Current user {state.user}</h4> */}
-
-      <ul>
-        {users.map(user => (
-          <li key={user.id}>
-            #{user.id} {user.name} ({user.company.name})
-          </li>
-        ))}
-      </ul>
-    </>
-  )
+  return <>User: {user.username}</>
 }
 
 export default App

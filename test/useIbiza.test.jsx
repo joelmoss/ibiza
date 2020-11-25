@@ -29,6 +29,7 @@ class ErrorBoundary extends React.Component {
 
 afterEach(() => {
   store.reset()
+  store.debug = false
 })
 
 it('returns empty state proxy with no arguments', () => {
@@ -438,19 +439,6 @@ describe('slicing', () => {
       }).toThrow()
     })
 
-    it('throws on get of getter', () => {
-      store.merge({ nested: { get eatTheWorld() {} } })
-
-      const App = () => {
-        const eatTheWorld = useIbiza('nested.eatTheWorld')
-        return <h1>Hello</h1>
-      }
-
-      expect(() => {
-        render(<App />)
-      }).toThrow()
-    })
-
     it('object', () => {
       store.merge({ firstName: 'Joel', children: [{ firstName: 'Ash' }, { firstName: 'Elijah' }] })
 
@@ -494,6 +482,28 @@ describe('slicing', () => {
       const App = () => {
         const state = useIbiza('nested')
         return <>Hello {state.eatTheWorld}</>
+      }
+
+      render(<App />)
+
+      screen.getByText('Hello World')
+      expect(spy).toBeCalledTimes(1)
+    })
+
+    it('getter direct access', () => {
+      const model = {
+        nested: {
+          get eatTheWorld() {
+            return 'World'
+          }
+        }
+      }
+      const spy = jest.spyOn(model.nested, 'eatTheWorld', 'get')
+      store.merge(model)
+
+      const App = () => {
+        const eatTheWorld = useIbiza('nested.eatTheWorld')
+        return <>Hello {eatTheWorld}</>
       }
 
       render(<App />)
@@ -954,21 +964,30 @@ describe('functions (actions)', () => {
 })
 
 describe('URL backed state', () => {
-  const fetchSpy = jest.fn()
-  store.fetchFn = path => {
-    fetchSpy()
+  let fetchSpy
 
-    const url = new URL(path, location.origin)
-    const resource = new Request(url)
+  beforeEach(() => {
+    fetchSpy = jest.fn()
 
-    return fetch(resource).then(response => {
-      if (!response.ok) {
-        throw new Error(`Error (${response.status})`)
-      }
+    store.fetchFn = path => {
+      fetchSpy()
 
-      return response.json()
-    })
-  }
+      const url = new URL(path, location.origin)
+      const resource = new Request(url)
+
+      return fetch(resource).then(response => {
+        if (!response.ok) {
+          throw new Error(`Error (${response.status})`)
+        }
+
+        return response.json()
+      })
+    }
+  })
+
+  afterEach(() => {
+    fetchSpy = null
+  })
 
   it('fetches from the server', async () => {
     function Section() {
@@ -989,5 +1008,64 @@ describe('URL backed state', () => {
     await act(() => new Promise(res => setTimeout(res, 150)))
     expect(container.textContent).toMatchInlineSnapshot(`"Joel Moss"`)
     expect(fetchSpy).toBeCalledTimes(1)
+  })
+
+  it('can get URL prop from a getter', async () => {
+    store.merge({
+      get user() {
+        return this['/user']
+      }
+    })
+
+    function User() {
+      const user = useIbiza('user')
+      return <div>{user.name}</div>
+    }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      )
+    }
+
+    const { container } = render(<App />)
+
+    expect(container.textContent).toMatchInlineSnapshot(`"fallback"`)
+    await act(() => new Promise(res => setTimeout(res, 150)))
+    expect(container.textContent).toMatchInlineSnapshot(`"Joel Moss"`)
+    expect(fetchSpy).toBeCalledTimes(1)
+  })
+
+  it('can set URL prop from a function', async () => {
+    store.merge({
+      setUser: (state, name) => {
+        state['/user'] = { name }
+      }
+    })
+
+    function User() {
+      const user = useIbiza('/user', 'User')
+      return <div>{user.name}</div>
+    }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      )
+    }
+
+    const { container } = render(<App />)
+
+    expect(container.textContent).toMatchInlineSnapshot(`"fallback"`)
+    await act(() => new Promise(res => setTimeout(res, 150)))
+    expect(container.textContent).toMatchInlineSnapshot(`"Joel Moss"`)
+
+    act(() => {
+      store.state.setUser('new Joel')
+    })
+
+    expect(container.textContent).toMatchInlineSnapshot(`"new Joel"`)
   })
 })

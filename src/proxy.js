@@ -1,11 +1,10 @@
-// Recursively merge `src` into `target`, while proxifying any objects. Arrays are replaced, and
-
-import { compact, isArray, isPlainObject } from 'lodash'
+import { compact, isPlainObject } from 'lodash'
 import store from './store'
 import suspendedState from './suspendedState'
 
+// Recursively merge `src` into `target`, while proxifying any objects. Arrays are replaced, and
 // getters/setters copied.
-export function proxyMerge(target, src, parentPath = null) {
+export function proxyMerge(target, src, parentPath = null, debugName = '') {
   const props = Object.keys(src)
 
   // Save the target's path.
@@ -16,8 +15,6 @@ export function proxyMerge(target, src, parentPath = null) {
     const isDataDesc = desc.hasOwnProperty('value')
     const path = compact([parentPath, prop]).join('.')
 
-    // console.group(prop, isDataDesc ? '[data]' : '[accessor]', path)
-
     // If the prop doesn't exist on the target, define it.
     if (!target.hasOwnProperty(prop)) {
       Object.defineProperty(target, prop, desc)
@@ -27,7 +24,7 @@ export function proxyMerge(target, src, parentPath = null) {
       Object.defineProperty(target, prop, desc)
 
       // If prop is Array => Replace.
-    } else if (isArray(desc.value)) {
+    } else if (Array.isArray(desc.value)) {
       Object.defineProperty(target, prop, desc)
     }
 
@@ -37,44 +34,33 @@ export function proxyMerge(target, src, parentPath = null) {
       const value = Reflect.get(target, prop, { bypassProxy: true })
 
       if (isPlainObject(desc.value)) {
-        target[prop] = proxyMerge(value, desc.value, path)
-      } else if (isArray(desc.value)) {
+        target[prop] = proxyMerge(value, desc.value, path, debugName)
+      } else if (Array.isArray(desc.value)) {
         const arr = desc.value.map(x => {
           if (isPlainObject(x)) {
             // Save the path.
             Object.defineProperty(x, '__path', { value: path })
 
-            return proxify(x)
+            return proxify(x, debugName)
           } else {
             return x
           }
         })
 
         Object.defineProperty(arr, '__path', { value: path })
-        target[prop] = proxify(arr)
+        target[prop] = proxify(arr, debugName)
       }
     }
-
-    // console.groupEnd()
   }
 
   // Finally - Proxify the object!
-  return proxify(target)
+  return proxify(target, debugName)
 }
 
-const proxify = obj => {
-  // If obj is already a proxy, return it.
-  if (obj === null || obj.isProxy) return obj
-
-  const proxy = new Proxy(obj, {
+const createHandler = (debugName = '') => {
+  return {
     get: function (target, prop, receiver) {
       if (prop === 'isProxy') return true
-
-      // If prop is a URL, fetch it now and set the prop.
-      if (typeof prop === 'string' && prop.indexOf('/') === 0) {
-        const response = suspendedState(store.fetchFn, prop)
-        Reflect.set(target, prop, response)
-      }
 
       const receiverProps = Object.getOwnPropertyNames(receiver)
       let onGet = undefined
@@ -88,13 +74,21 @@ const proxify = obj => {
       if (typeof prop === 'symbol') return result
 
       // Ignore if bypassProxy is given in the receiver.
-      if (!receiver.isProxy && receiver.bypassProxy) return result
+      if (receiver && !receiver.isProxy && receiver.bypassProxy) return result
 
-      // Ignore any non-own properties.
-      // if (!target.hasOwnProperty(prop)) return result
+      // Ignore any non-own properties while allowing undefined properties.
+      if (!target.hasOwnProperty(prop) && Object.getPrototypeOf(target)[prop]) return result
 
-      // Functions should be bound to the global store state - the root. And the same should be
-      // passed as the first argument.
+      store.debug &&
+        console.debug(
+          '[Ibiza] %s proxy:get %o',
+          debugName,
+          target.__path ? [target.__path, prop].join('.') : prop,
+          { onGet, target, receiver, result }
+        )
+
+      // Functions should be bound to the global store state - the root. And the same passed as the
+      // first argument.
       if (typeof result === 'function' && target.hasOwnProperty(prop)) {
         return result.bind(store.state, store.state)
       }
@@ -102,20 +96,34 @@ const proxify = obj => {
       // Track this property's usage, but on a per-hook basis.
       onGet && onGet({ target, prop })
 
+      // If prop is a URL, fetch and set it.
+      if (!result && typeof prop === 'string' && prop.indexOf('/') === 0) {
+        this.set(target, prop, suspendedState(store.fetchFn, prop), receiver)
+
+        return this.get(target, prop, receiver || {})
+      }
+
       return result
     },
 
     set: function (target, prop, value, receiver) {
+      let path = target.__path
+      path = typeof path === 'undefined' || path === null ? prop : [path, prop].join('.')
+
+      if (typeof value === 'object' && !value.isProxy) {
+        value = proxyMerge(Array.isArray(value) ? [] : {}, value, path)
+      }
+
       const previousValue = Reflect.get(target, prop, receiver)
       const result = Reflect.set(target, prop, value)
+
+      store.debug && console.debug('[Ibiza] %s proxy:set %o to %o', debugName, prop, value)
 
       if (!result) {
         throw new Error(`Failed to set property '${prop}'`)
       }
 
       const isChanged = !(prop in target) || !Object.is(previousValue, value)
-      let path = target.__path
-      path = path === null ? prop : [path, prop].join('.')
 
       // Emit when value is changed.
       path &&
@@ -143,12 +151,16 @@ const proxify = obj => {
     //   return Reflect.apply(...arguments)
     // },
 
-    // defineProperty: function () {
-    //   console.warn('[Ibiza] Untrapped defineProperty', ...arguments)
+    // defineProperty: function (target, property, descriptor) {
+    //   console.warn('[Ibiza] Untrapped defineProperty', { target, property, descriptor })
 
-    //   return Reflect.defineProperty(...arguments)
+    //   return Reflect.defineProperty(target, property, descriptor)
     // }
-  })
+  }
+}
 
-  return proxy
+export const proxify = (obj, debugName = '') => {
+  if (obj === null || obj.isProxy) return obj
+
+  return new Proxy(obj, createHandler(debugName))
 }

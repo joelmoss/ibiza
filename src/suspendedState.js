@@ -1,12 +1,14 @@
 import store from './store'
 
-export default (fetchFn, key, debug) => {
+export default (fetchFn, key) => {
   if (!store.fetches[key]) {
-    debug && console.debug('%s Fetching %o ...', debug, key)
+    store.debug && console.log('[Ibiza] Fetching %o ...', key)
 
     store.fetches[key] = {
       fetch: (typeof fetchFn.then === 'function' ? fetchFn : fetchFn(key))
         .then(response => {
+          store.debug && console.log('[Ibiza] Fetched %o successfully', key)
+
           store.fetches[key].response = response
         })
         .catch(error => {

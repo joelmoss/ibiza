@@ -32,7 +32,11 @@ function getShallowProperty(obj, prop) {
     const descriptor = Object.getOwnPropertyDescriptor(obj, prop)
 
     // TODO: in this case, don't use a proxy - just track the property ourselves.
-    if (!descriptor.hasOwnProperty('value') || typeof descriptor.value !== 'object') {
+    if (
+      !descriptor.hasOwnProperty('get') &&
+      !descriptor.hasOwnProperty('set') &&
+      (!descriptor.hasOwnProperty('value') || typeof descriptor.value !== 'object')
+    ) {
       throw (
         '[Ibiza] You requested a slice that is not an object, which Ibiza cannot track. ' +
         'Instead you should return the parent object that contains the wanted slice.'
@@ -46,13 +50,4 @@ function getShallowProperty(obj, prop) {
 function getKey(key) {
   var intKey = parseInt(key)
   return intKey.toString() === key ? intKey : key
-}
-
-export const AccessorDescriptor = function (prop, desc) {
-  this.prop = prop
-  Object.defineProperty(this, 'target', desc)
-}
-
-AccessorDescriptor.prototype.valueOf = function () {
-  return this.target
 }

@@ -1,17 +1,18 @@
 import { isPlainObject } from 'lodash'
-import { proxyMerge } from './proxy'
+import { proxyMerge, proxify } from './proxy'
 
 class IbizaStore {
   constructor() {
-    this.state = {}
+    this.state = proxify({})
     this.setListeners = new Set()
     this.fetches = new Map()
     this.mergedObjects = new WeakMap()
+    this.debug = false
   }
 
   // Recursively merge the given `obj` into the store, ensuring that each level of the object is
   // proxified.
-  merge(obj) {
+  merge(obj, debugName = '') {
     if (!isPlainObject(obj)) {
       throw new TypeError('IbizaStore#merge expects a plain object to merge')
     }
@@ -19,7 +20,7 @@ class IbizaStore {
     // Don't merge if `obj` has already been merged.
     if (!this.mergedObjects.has(obj)) {
       this.mergedObjects.set(obj, true)
-      this.state = proxyMerge(this.state, obj)
+      this.state = proxyMerge(this.state, obj, null, debugName)
     }
   }
 
@@ -34,8 +35,12 @@ class IbizaStore {
   }
 
   reset() {
-    this.state = {}
+    this.state = proxify({})
     this.setListeners = new Set()
+    this.fetches = new Map()
+    this.mergedObjects = new WeakMap()
+    this.debug = false
+    delete this.customFetchFn
   }
 
   get fetchFn() {
@@ -60,5 +65,7 @@ const defaultFetchFn = path => {
   })
 }
 
-// Initialize the store as a Proxy.
-export default new IbizaStore()
+// Initialize the store and export as default and on `window`.
+const store = new IbizaStore()
+window.ibizaStore = store
+export default store
