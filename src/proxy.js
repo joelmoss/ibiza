@@ -31,7 +31,7 @@ export function proxyMerge(target, src, parentPath = null, debugName = '') {
     // prop is a data descriptor
     if (isDataDesc) {
       // Get the value without triggering the proxy.
-      const value = Reflect.get(target, prop, { bypassProxy: true })
+      const value = Reflect.get(target, prop, { receiver: store.state, bypassProxy: true })
 
       if (isPlainObject(desc.value)) {
         target[prop] = proxyMerge(value, desc.value, path, debugName)
@@ -69,7 +69,7 @@ const createHandler = (debugName = '') => {
         receiver = receiver.receiver
       }
 
-      const result = Reflect.get(target, prop, receiver)
+      const result = Reflect.get(target, prop, store.state)
 
       if (typeof prop === 'symbol') return result
 
@@ -114,7 +114,7 @@ const createHandler = (debugName = '') => {
         value = proxyMerge(Array.isArray(value) ? [] : {}, value, path)
       }
 
-      const previousValue = Reflect.get(target, prop, receiver)
+      const previousValue = Reflect.get(target, prop, store.state)
       const result = Reflect.set(target, prop, value)
 
       store.debug && console.debug('[Ibiza] %s proxy:set %o to %o', debugName, prop, value)

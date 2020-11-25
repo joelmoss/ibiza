@@ -376,13 +376,15 @@ it('ensures parent components subscribe before children', async () => {
 test('getter', async () => {
   const App = () => {
     const state = useIbiza({
-      firstName: 'Joel',
-      get name() {
-        return `${this.firstName} Moss`
+      user: {
+        firstName: 'Joel',
+        get name() {
+          return `${this.user.firstName} Moss`
+        }
       }
     })
 
-    return <h1>Name is {state.name}</h1>
+    return <h1>Name is {state.user.name}</h1>
   }
 
   const { renderCount } = perf(React)
@@ -391,7 +393,7 @@ test('getter', async () => {
   screen.getByText('Name is Joel Moss')
 
   act(() => {
-    store.state.firstName = 'Ash'
+    store.state.user.firstName = 'Ash'
   })
 
   await screen.findByText('Name is Ash Moss')
