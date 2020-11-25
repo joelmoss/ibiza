@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable react/display-name */
-import React, { Suspense, useCallback, useRef, useState } from 'react'
+import React, { Fragment, Suspense, useCallback, useRef, useState } from 'react'
 import ReactDOM from 'react-dom'
 import { render, act, fireEvent, screen, waitFor, getByText } from '@testing-library/react'
 import { renderHook, act as hookAct } from '@testing-library/react-hooks'
@@ -8,6 +8,7 @@ import { perf, wait } from 'react-performance-testing'
 import { merge, mergeWith } from 'lodash'
 
 import { useIbiza, store } from '../src'
+import { unwrap } from '../src/proxy'
 
 const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resolve(data), ms))
 
@@ -492,11 +493,48 @@ describe('slicing', () => {
       expect(spy).toBeCalledTimes(1)
     })
 
+    it.only('iterator', () => {
+      const model = {
+        nested: {
+          world: 'World',
+          get eatTheWorld() {
+            console.debug(this)
+            console.debug(unwrap(this))
+            return this.nested.world
+          },
+          *[Symbol.iterator]() {
+            for (let letter of this.nested.world) {
+              yield letter
+            }
+          }
+        }
+      }
+      store.merge(model)
+
+      const App = () => {
+        const state = useIbiza('nested')
+        return (
+          <>
+            Hello
+            {state.eatTheWorld}
+            {Array.from(state).map((item, i) => (
+              <Fragment key={i}>{item}</Fragment>
+            ))}
+          </>
+        )
+      }
+
+      const { container } = render(<App />)
+
+      expect(container).toMatchSnapshot()
+    })
+
     it('getter direct access', () => {
       const model = {
         nested: {
+          world: 'World',
           get eatTheWorld() {
-            return 'World'
+            return this.nested.world
           }
         }
       }

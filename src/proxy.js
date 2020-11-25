@@ -2,6 +2,20 @@ import { compact, isPlainObject } from 'lodash'
 import store from './store'
 import suspendedState from './suspendedState'
 
+export const TARGET = Symbol('target')
+
+export const unwrap = state => {
+  const obj = state[TARGET] || state
+
+  Object.keys(obj).forEach(key => {
+    if (typeof obj[key] === 'object') {
+      obj[key] = unwrap(obj[key])
+    }
+  })
+
+  return obj
+}
+
 // Recursively merge `src` into `target`, while proxifying any objects. Arrays are replaced, and
 // getters/setters copied.
 export function proxyMerge(target, src, parentPath = null, debugName = '') {
@@ -61,6 +75,7 @@ const createHandler = (debugName = '') => {
   return {
     get: function (target, prop, receiver) {
       if (prop === 'isProxy') return true
+      if (prop === TARGET) return target
 
       const receiverProps = Object.getOwnPropertyNames(receiver)
       let onGet = undefined
@@ -70,26 +85,28 @@ const createHandler = (debugName = '') => {
       }
 
       const result = Reflect.get(target, prop, store.state)
+      const hasOwnProperty = target.hasOwnProperty(prop)
 
-      if (typeof prop === 'symbol') return result
+      if (!hasOwnProperty && typeof prop === 'symbol') return result
 
       // Ignore if bypassProxy is given in the receiver.
       if (receiver && !receiver.isProxy && receiver.bypassProxy) return result
 
-      // Ignore any non-own properties while allowing undefined properties.
-      if (!target.hasOwnProperty(prop) && Object.getPrototypeOf(target)[prop]) return result
+      // // Ignore any non-own properties while allowing undefined properties.
+      if (!hasOwnProperty && Object.getPrototypeOf(target)[prop]) return result
 
       store.debug &&
         console.debug(
           '[Ibiza] %s proxy:get %o',
           debugName,
-          target.__path ? [target.__path, prop].join('.') : prop,
+          prop,
+          // target.__path ? [target.__path, prop].join('.') : prop,
           { onGet, target, receiver, result }
         )
 
       // Functions should be bound to the global store state - the root. And the same passed as the
       // first argument.
-      if (typeof result === 'function' && target.hasOwnProperty(prop)) {
+      if (typeof result === 'function' && hasOwnProperty) {
         return result.bind(store.state, store.state)
       }
 

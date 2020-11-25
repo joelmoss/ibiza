@@ -2,6 +2,7 @@ import { isPlainObject } from 'lodash'
 import { useCallback, useMemo, useReducer, useRef } from 'react'
 
 import { getByPath } from './path'
+import { TARGET } from './proxy'
 import store from './store'
 
 // Accepts an initial state or slice, and returns a proxy of the state. Any initial state given
@@ -108,6 +109,7 @@ export default (initialStateOrSlice = {}, debugName) => {
     const handler = {
       get: function (target, prop, receiver) {
         if (prop === 'isProxy') return true
+        if (prop === TARGET) return target
 
         // Get the actual store state, and pass the `onGet` callback so we can intercept get
         // operations in this hook instance.

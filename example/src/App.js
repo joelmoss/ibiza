@@ -22,7 +22,6 @@ const model = {
 
   nested: {
     get user() {
-      console.log(this)
       return this['/users/1']
     },
 

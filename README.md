@@ -220,11 +220,12 @@ const MyComponent = () => {
 
 - Get state without needing selectors. Just use the state you need, and your components will re-render when that used state is mutated.
 - Set state using regular variable assignment: `state.name = value`.
+- No need for a wrapping "Provider" component.
+- Fetch state from the server when a state key is requested (react-query style).
 
 ## Wishlist
 
-- No need for a wrapping "Provider" component. (`useMutableSource()` ?)
-- Fetch state from the server when a state key is requested (react-query style).
+- Support Classes in state.
 
 ## Differences to easy-peasy
 
