@@ -493,15 +493,10 @@ describe('slicing', () => {
       expect(spy).toBeCalledTimes(1)
     })
 
-    it.only('iterator', () => {
+    it('iterator', () => {
       const model = {
         nested: {
           world: 'World',
-          get eatTheWorld() {
-            console.debug(this)
-            console.debug(unwrap(this))
-            return this.nested.world
-          },
           *[Symbol.iterator]() {
             for (let letter of this.nested.world) {
               yield letter
@@ -516,7 +511,6 @@ describe('slicing', () => {
         return (
           <>
             Hello
-            {state.eatTheWorld}
             {Array.from(state).map((item, i) => (
               <Fragment key={i}>{item}</Fragment>
             ))}
