@@ -229,18 +229,40 @@ it('re-renders on changed used array state', async () => {
   const { renderCount } = perf(React)
   render(<App />)
 
-  expect(store.state).toEqual({ items: [1] })
+  expect(store.unwrappedState).toEqual({ items: [1] })
   screen.getByText('Item#1')
 
   act(() => {
     store.state.items.push(2)
   })
 
-  expect(store.state).toEqual({ items: [1, 2] })
-  screen.getByText('Item#1')
-  screen.getByText('Item#2')
+  expect(store.unwrappedState).toEqual({ items: [1, 2] })
+  await screen.findByText('Item#1')
+  await screen.findByText('Item#2')
 
   await wait(() => expect(renderCount.current.App.value).toBe(2))
+})
+
+it.skip('re-renders on change of Date objects', async () => {
+  store.debug = true
+  const date = new Date()
+  const App = () => {
+    const state = useIbiza({ count: 0, date })
+    return <button onClick={() => (state.date = new Date())} />
+  }
+
+  const { renderCount } = perf(React)
+  render(<App />)
+
+  expect(store.unwrappedState).toEqual({ count: 0, date })
+  await wait(() => expect(renderCount.current.App.value).toBe(1))
+
+  fireEvent.click(screen.getByRole('button'))
+
+  console.debug(store.unwrappedState)
+
+  expect(store.unwrappedState).toEqual({ count: 0, date })
+  await wait(() => expect(renderCount.current.App.value).toBe(1))
 })
 
 it('does not re-render on changed unused state', async () => {
@@ -256,7 +278,7 @@ it('does not re-render on changed unused state', async () => {
 
   fireEvent.click(screen.getByRole('button'))
 
-  expect(store.state).toEqual({ count: 1 })
+  expect(store.unwrappedState).toEqual({ count: 1 })
   await wait(() => expect(renderCount.current.App.value).toBe(1))
 })
 
@@ -275,7 +297,7 @@ it('does not re-render on changed unused state outside component', async () => {
     store.state.count = 1
   })
 
-  expect(store.state).toEqual({ count: 1 })
+  expect(store.unwrappedState).toEqual({ count: 1 })
   await wait(() => expect(renderCount.current.App.value).toBe(1))
 })
 
@@ -732,7 +754,7 @@ describe('slicing', () => {
 
       fireEvent.click(screen.getByRole('button'))
 
-      console.log(store.state)
+      console.log(store.unwrappedState)
 
       await screen.findByText('Hello Eve')
     })
@@ -986,12 +1008,12 @@ describe('functions (actions)', () => {
     })
 
     await screen.findByText('Hello1')
-    expect(store.state.count).toBe(1)
+    expect(store.unwrappedState.count).toBe(1)
 
     await act(() => new Promise(res => setTimeout(res, 200)))
 
     await screen.findByText('Hello2')
-    expect(store.state.count).toBe(2)
+    expect(store.unwrappedState.count).toBe(2)
 
     await waitFor(() => expect(renderCount.current.App.value).toEqual(3))
   })
@@ -1024,14 +1046,14 @@ describe('URL backed state', () => {
   })
 
   it('fetches from the server', async () => {
-    function Section() {
+    function User() {
       const user = useIbiza('/user')
       return <div>{user.name}</div>
     }
     const App = () => {
       return (
         <Suspense fallback={<div>fallback</div>}>
-          <Section />
+          <User />
         </Suspense>
       )
     }

@@ -5,7 +5,9 @@ import suspendedState from './suspendedState'
 export const TARGET = Symbol('target')
 
 export const unwrap = state => {
-  const obj = state[TARGET] || state
+  // Destructure to ensure a copy.
+  const target = state[TARGET]
+  const obj = Array.isArray(target) ? [...target] : { ...target }
 
   Object.keys(obj).forEach(key => {
     if (typeof obj[key] === 'object') {

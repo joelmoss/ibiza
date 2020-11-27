@@ -226,6 +226,7 @@ const MyComponent = () => {
 ## Wishlist
 
 - Support Classes in state.
+- Read only state.
 
 ## Differences to easy-peasy
 

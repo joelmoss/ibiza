@@ -1,5 +1,5 @@
 import { isPlainObject } from 'lodash'
-import { proxyMerge, proxify } from './proxy'
+import { proxyMerge, proxify, unwrap } from './proxy'
 
 class IbizaStore {
   constructor() {
@@ -41,6 +41,10 @@ class IbizaStore {
     this.mergedObjects = new WeakMap()
     this.debug = false
     delete this.customFetchFn
+  }
+
+  get unwrappedState() {
+    return unwrap(this.state)
   }
 
   get fetchFn() {
