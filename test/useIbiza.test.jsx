@@ -243,26 +243,26 @@ it('re-renders on changed used array state', async () => {
   await wait(() => expect(renderCount.current.App.value).toBe(2))
 })
 
-it.skip('re-renders on change of Date objects', async () => {
-  store.debug = true
+it('re-renders on change of Date objects', async () => {
   const date = new Date()
   const App = () => {
     const state = useIbiza({ count: 0, date })
-    return <button onClick={() => (state.date = new Date())} />
+    return (
+      <>
+        <p>date is {state.date.toString()}</p>
+        <button onClick={() => (state.date = new Date())} />
+      </>
+    )
   }
 
   const { renderCount } = perf(React)
   render(<App />)
 
-  expect(store.unwrappedState).toEqual({ count: 0, date })
   await wait(() => expect(renderCount.current.App.value).toBe(1))
 
   fireEvent.click(screen.getByRole('button'))
 
-  console.debug(store.unwrappedState)
-
-  expect(store.unwrappedState).toEqual({ count: 0, date })
-  await wait(() => expect(renderCount.current.App.value).toBe(1))
+  await wait(() => expect(renderCount.current.App.value).toBe(2))
 })
 
 it('does not re-render on changed unused state', async () => {

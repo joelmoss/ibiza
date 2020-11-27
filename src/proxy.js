@@ -1,4 +1,4 @@
-import { compact, isPlainObject } from 'lodash'
+import { compact, isPlainObject, isDate, clone } from 'lodash'
 import store from './store'
 import suspendedState from './suspendedState'
 
@@ -6,14 +6,15 @@ export const TARGET = Symbol('target')
 
 export const unwrap = state => {
   // Destructure to ensure a copy.
-  const target = state[TARGET]
-  const obj = Array.isArray(target) ? [...target] : { ...target }
+  const obj = clone(state[TARGET])
 
-  Object.keys(obj).forEach(key => {
-    if (typeof obj[key] === 'object') {
-      obj[key] = unwrap(obj[key])
-    }
-  })
+  if (obj && typeof obj === 'object') {
+    Object.keys(obj).forEach(key => {
+      if (!isDate(obj[key]) && typeof obj[key] === 'object') {
+        obj[key] = unwrap(obj[key])
+      }
+    })
+  }
 
   return obj
 }
@@ -129,7 +130,7 @@ const createHandler = (debugName = '') => {
       let path = target.__path
       path = typeof path === 'undefined' || path === null ? prop : [path, prop].join('.')
 
-      if (typeof value === 'object' && !value.isProxy) {
+      if (typeof value === 'object' && !isDate(value) && !value.isProxy) {
         value = proxyMerge(Array.isArray(value) ? [] : {}, value, path)
       }
 
