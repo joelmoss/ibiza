@@ -26,6 +26,10 @@ class IbizaStore {
 
   listenOnSet(setFn) {
     this.setListeners.add(setFn)
+
+    return () => {
+      this.setListeners.delete(setFn)
+    }
   }
 
   publishSet(args) {
@@ -48,7 +52,7 @@ class IbizaStore {
   }
 
   get fetchFn() {
-    return this.customFetchFn || defaultFetchFn
+    return (this.customFetchFn || defaultFetchFn).bind(this.state)
   }
 
   set fetchFn(fn) {

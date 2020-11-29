@@ -358,6 +358,13 @@ it.skip('can batch updates', async () => {
 })
 
 it('ensures parent components subscribe before children', async () => {
+  store.merge({
+    children: {
+      1: { text: 'child 1' },
+      2: { text: 'child 2' }
+    }
+  })
+
   const Child = ({ id }) => {
     const { children } = useIbiza()
     return <div>{children[id].text}</div>
@@ -379,17 +386,7 @@ it('ensures parent components subscribe before children', async () => {
     )
   }
 
-  const App = () => {
-    const state = useIbiza({
-      children: {
-        1: { text: 'child 1' },
-        2: { text: 'child 2' }
-      }
-    })
-    return <Parent />
-  }
-
-  render(<App />)
+  render(<Parent />)
 
   fireEvent.click(screen.getByText('change state'))
 

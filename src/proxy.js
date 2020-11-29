@@ -6,7 +6,7 @@ export const TARGET = Symbol('target')
 
 export const unwrap = state => {
   // Destructure to ensure a copy.
-  const obj = clone(state[TARGET])
+  const obj = clone(state[TARGET] || state)
 
   if (obj && typeof obj === 'object') {
     Object.keys(obj).forEach(key => {
@@ -135,9 +135,15 @@ const createHandler = (debugName = '') => {
       }
 
       const previousValue = Reflect.get(target, prop, store.state)
-      const result = Reflect.set(target, prop, value)
 
-      store.debug && console.debug('[Ibiza] %s proxy:set %o to %o', debugName, prop, value)
+      const desc = Object.getOwnPropertyDescriptor(target, prop)
+      const thisArg = desc && desc.set ? store.state : receiver
+      const result = Reflect.set(target, prop, value, thisArg)
+
+      store.debug &&
+        console.debug('[Ibiza] %s proxy:set %o to %o', debugName, path, value, {
+          target
+        })
 
       if (!result) {
         throw new Error(`Failed to set property '${prop}'`)

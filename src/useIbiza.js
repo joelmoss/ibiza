@@ -1,5 +1,5 @@
 import { isPlainObject } from 'lodash'
-import { useCallback, useMemo, useReducer, useRef } from 'react'
+import { useCallback, useMemo, useReducer, useRef, useEffect } from 'react'
 
 import { getByPath } from './path'
 import { TARGET } from './proxy'
@@ -76,7 +76,8 @@ export default (initialStateOrSlice = {}, debugName) => {
       const propPaths = path.split('.')
 
       // Check ancestors
-      usedPathsRef.current.some(p => p.startsWith(path) || propPaths.includes(p)) && rerender()
+      // usedPathsRef.current.some(p => p.startsWith(path) || propPaths.includes(p)) && rerender()
+      usedPathsRef.current.some(p => propPaths.includes(p)) && rerender()
     }
   }, [])
 
@@ -121,8 +122,12 @@ export default (initialStateOrSlice = {}, debugName) => {
     return new Proxy(store.state, handler)
   }, [onGet])
 
-  // Listen for changes. Listeners are Set's, so they will always be unique - no need to de-dupe!
-  store.listenOnSet(onSet)
+  useEffect(() => {
+    // Listen for changes. Listeners are Set's, so they will always be unique - no need to de-dupe!
+    const unlisten = store.listenOnSet(onSet)
+
+    return unlisten
+  }, [])
 
   if (slicePathRef.current) {
     if (slicePathRef.current.indexOf('/') === 0) {
