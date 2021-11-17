@@ -1,0 +1,24 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`initial state can pass slice 1`] = `
+Object {
+  "user": Object {
+    "child": Object {
+      "name": "Joel",
+    },
+  },
+}
+`;
+
+exports[`initial state merges 1`] = `
+Object {
+  "children": Array [],
+  "count": 0,
+  "count1": 0,
+  "foo": "bar",
+  "name": Object {
+    "firstName": "Ash",
+    "lastName": "Moss",
+  },
+}
+`;

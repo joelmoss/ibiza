@@ -1,0 +1,55 @@
+{
+  "name": "ibiza",
+  "author": "Joel Moss",
+  "version": "1.0.0-beta.1",
+  "description": "React State Management for Party Animals",
+  "license": "MIT",
+  "homepage": "https://github.com/joelmoss/ibiza",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joelmoss/ibiza.git"
+  },
+  "bugs": {
+    "url": "https://github.com/joelmoss/ibiza/issues"
+  },
+  "keywords": [
+    "react",
+    "state",
+    "proxy"
+  ],
+  "browser": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "jest"
+  },
+  "prettier": {
+    "trailingComma": "none",
+    "printWidth": 100,
+    "semi": false,
+    "singleQuote": true,
+    "arrowParens": "avoid"
+  },
+  "peerDependencies": {
+    "react": ">=16",
+    "react-dom": ">=16"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.16.0",
+    "@babel/preset-env": "^7.16.4",
+    "@babel/preset-react": "^7.16.0",
+    "@testing-library/jest-dom": "^5.15.0",
+    "@testing-library/react": "^12.1.2",
+    "@testing-library/react-hooks": "^7.0.2",
+    "babel-jest": "^27.3.1",
+    "cross-fetch": "^3.1.4",
+    "fetch-mock-jest": "^1.5.1",
+    "jest": "^27.3.1",
+    "msw": "^0.35.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "dependencies": {
+    "fast-equals": "^2.0.3",
+    "micro-memoize": "^4.0.9"
+  }
+}
