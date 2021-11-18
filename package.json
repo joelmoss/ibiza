@@ -24,7 +24,7 @@
   "scripts": {
     "test": "jest",
     "build": "rollup -c",
-    "prepublishOnly": "npm run build",
+    "prepack": "rollup -c",
     "size": "size-limit"
   },
   "size-limit": [
