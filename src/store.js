@@ -2,8 +2,6 @@
 
 import { isPlainObject, get, isDate } from 'lodash'
 
-import { rawStateOf } from './helpers.js'
-
 class IbizaStore {
   debug = process.env.NODE_ENV === 'development'
 
@@ -315,6 +313,13 @@ export default store
 
 if (process.env.NODE_ENV !== 'production') {
   window.ibizaStore = store
+}
+
+// Accepts a state Proxy and returns the raw un-proxied state.
+export function rawStateOf(state) {
+  if (!state || !state.isProxy) return state
+
+  return state.__path ? get(store.rawState, state.__path) : store.rawState
 }
 
 // Recursively merge `src` into `target`. Arrays are replaced, and getters/setters copied without

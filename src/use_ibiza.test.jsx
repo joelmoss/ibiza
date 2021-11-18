@@ -10,8 +10,7 @@ import { setupServer } from 'msw/node'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import useIbiza from './use_ibiza.js'
-import store from './store.js'
-import { rawStateOf } from './helpers.js'
+import store, { rawStateOf } from './store.js'
 
 const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resolve(data), ms))
 

@@ -1,7 +1,5 @@
 import { get } from 'lodash'
 
-import store from './store.js'
-
 // Create a accessor descriptor on the given `obj` at `prop`. This defines a getter and setter
 // with a internally scoped value.
 //
@@ -39,13 +37,6 @@ export function createAccessor(obj, prop, options = {}) {
       }
     }
   })
-}
-
-// Accepts a state Proxy and returns the raw un-proxied state.
-export function rawStateOf(state) {
-  if (!state || !state.isProxy) return state
-
-  return state.__path ? get(store.rawState, state.__path) : store.rawState
 }
 
 export function freeze(object) {

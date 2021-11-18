@@ -49,6 +49,24 @@
       "path": "index.js",
       "import": "{ createModel }",
       "limit": "1 s"
+    },
+    {
+      "name": "rawStateOf",
+      "path": "index.js",
+      "import": "{ rawStateOf }",
+      "limit": "1 s"
+    },
+    {
+      "name": "createAccessor",
+      "path": "index.js",
+      "import": "{ createAccessor }",
+      "limit": "1 s"
+    },
+    {
+      "name": "freeze",
+      "path": "index.js",
+      "import": "{ freeze }",
+      "limit": "1 s"
     }
   ],
   "prettier": {
