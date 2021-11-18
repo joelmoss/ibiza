@@ -24,6 +24,10 @@
   "source": "index.js",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
+  "exports": {
+    "require": "./dist/index.cjs",
+    "import": "./dist/index.js"
+  },
   "sideEffects": false,
   "scripts": {
     "test": "jest",
