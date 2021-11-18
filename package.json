@@ -17,6 +17,10 @@
     "state",
     "proxy"
   ],
+  "files": [
+    "dist",
+    "src"
+  ],
   "source": "index.js",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
