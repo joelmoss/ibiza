@@ -20,8 +20,26 @@
   "browser": "index.js",
   "type": "module",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "size": "size-limit"
   },
+  "size-limit": [
+    {
+      "name": "useIbiza",
+      "path": "index.js",
+      "import": "{ useIbiza }"
+    },
+    {
+      "name": "store",
+      "path": "index.js",
+      "import": "{ store }"
+    },
+    {
+      "name": "createModel",
+      "path": "index.js",
+      "import": "{ createModel }"
+    }
+  ],
   "prettier": {
     "trailingComma": "none",
     "printWidth": 100,
@@ -37,6 +55,7 @@
     "@babel/core": "^7.16.0",
     "@babel/preset-env": "^7.16.4",
     "@babel/preset-react": "^7.16.0",
+    "@size-limit/preset-small-lib": "^7.0.0",
     "@testing-library/jest-dom": "^5.15.0",
     "@testing-library/react": "^12.1.2",
     "@testing-library/react-hooks": "^7.0.2",
@@ -46,7 +65,8 @@
     "jest": "^27.3.1",
     "msw": "^0.35.0",
     "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "react-dom": "^17.0.2",
+    "size-limit": "^7.0.0"
   },
   "dependencies": {
     "fast-equals": "^2.0.3",
