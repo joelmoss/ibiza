@@ -19,6 +19,7 @@
   ],
   "browser": "index.js",
   "type": "module",
+  "sideEffects": false,
   "scripts": {
     "test": "jest",
     "size": "size-limit"
