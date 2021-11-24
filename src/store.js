@@ -7,6 +7,7 @@ class IbizaStore {
 
   fetches = {}
   modelInitializers = {}
+  modelOptions = {}
 
   #setListeners = new Set()
   #state = {}
@@ -69,11 +70,12 @@ class IbizaStore {
 
     this.fetches = {}
     this.modelInitializers = {}
+    this.modelOptions = {}
     this.debug = process.env.NODE_ENV === 'development'
   }
 
   get fetchFn() {
-    return (this.#customFetchFn || this.#defaultFetchFn).bind(this.state)
+    return this.#customFetchFn || this.#defaultFetchFn
   }
 
   set fetchFn(fn) {
@@ -103,15 +105,17 @@ class IbizaStore {
         resource in this.modelInitializers ? this.modelInitializers[resource](response) : response)
     }
 
+    const fetchFn = (this.modelOptions[resource]?.fetcher || this.fetchFn).bind(this.state)
+
     // Regular fetch.
     if (!suspense) {
-      return this.fetchFn(resource, options).then(thenCallback)
+      return fetchFn(resource, options).then(thenCallback)
     }
 
     // Suspenseful fetch.
     if (!this.fetches[resource]) {
       this.fetches[resource] = {
-        fetch: this.fetchFn(resource, options)
+        fetch: fetchFn(resource, options)
           .then(thenCallback)
           .catch(error => {
             this.fetches[resource].error = error

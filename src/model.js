@@ -15,13 +15,16 @@ import store from './store.js'
 // - modelName (String) - The name of the model, and the key to which the model's state will be
 //   assigned.
 // - modelDef (?Function|Object) - The initial model definition.
+// - options (?Object) - Model options:
+//   - fetch (Function) - A custom fetch function that this model will use. Only applies to URL
+//     models.
 //
 // Examples:
 //  const useUser = createModel('user', { name: 'Joel' })
 //  const user = useUser({ age: 43 })
 //  const child = useUser('child', { name: 'My child' })
 //
-export function createModel(modelName, modelDef = {}) {
+export function createModel(modelName, modelDef = {}, options = {}) {
   function useIbizaModel(slice, props) {
     useDebugValue(modelName)
 
@@ -41,6 +44,8 @@ export function createModel(modelName, modelDef = {}) {
         store.state[modelName] = modelDef
       }
     }
+
+    store.modelOptions[modelName] = options
 
     return useIbiza(slice ? [modelName, slice].join('.') : modelName)
   }
