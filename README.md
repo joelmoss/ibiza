@@ -354,7 +354,7 @@ const App = () => {
 }
 ```
 
-URL Models can also be defined with `createModel`:
+URL Models can also be defined with `createModel`, and accept the same arguments:
 
 ```javascript
 export default createModel('/user')
@@ -370,4 +370,11 @@ const App = () => {
 
   return <h1>Hello {user.firstName}</h1>
 }
+```
+
+Additionally, URL models accept a `fetcher` option, which when provided, will be used as the fetch
+function for the model:
+
+```javascript
+export default createModel('/user', {}, { fetcher: myFetchFunction })
 ```

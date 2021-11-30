@@ -241,6 +241,35 @@ describe('URL backed state', () => {
     expect(fetchSpy).toBeCalledTimes(1)
   })
 
+  it('accepts a custom fetch function option', async () => {
+    const customFetch = jest.fn(store.fetchFn)
+    const useUser = createModel('/user', {}, { fetcher: customFetch })
+
+    function User1() {
+      const user = useUser()
+      return <div>User1=[{user.name}]</div>
+    }
+    function User2() {
+      const user = useUser()
+      return <div>User2=[{user.name}]</div>
+    }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User1 />
+          <User2 />
+        </Suspense>
+      )
+    }
+
+    const { container } = render(<App />)
+
+    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
+    await act(() => new Promise(res => setTimeout(res, 150)))
+    expect(container.textContent).toMatchInlineSnapshot('"User1=[Joel Moss]User2=[Joel Moss]"')
+    expect(customFetch).toBeCalledTimes(1)
+  })
+
   it('model definition accepts server response', async () => {
     const useUser = createModel('/user', data => {
       const [firstName, lastName] = data.name.split(' ')
