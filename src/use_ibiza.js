@@ -171,8 +171,16 @@ function hasChangedChildrenFn(path, usedPaths, value, previousValue) {
 
     const childPath = up.replace(regex, '')
     const isPath = childPath.includes('.')
-    const nValue = isPath ? get(value, childPath) : value[childPath]
-    const pValue = isPath ? get(previousValue, childPath) : previousValue[childPath]
+
+    let nValue = undefined
+    if (typeof value !== 'undefined') {
+      nValue = isPath ? get(value, childPath) : value[childPath]
+    }
+
+    let pValue = undefined
+    if (typeof previousValue !== 'undefined') {
+      pValue = isPath ? get(previousValue, childPath) : previousValue[childPath]
+    }
 
     if (isDate(nValue) && isDate(pValue)) return nValue.getTime() !== pValue.getTime()
 

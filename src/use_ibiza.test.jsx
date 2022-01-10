@@ -1291,6 +1291,38 @@ describe('arrays', () => {
     expect(container).not.toHaveTextContent('Child[Elijah]')
     expect(renderCount).toBe(2)
   })
+
+  it('array of objects', async () => {
+    store.state = [{ name: 'Ash' }, { name: 'Elijah' }]
+
+    let renderCount = 0
+    const App = () => {
+      const state = useIbiza()
+      renderCount++
+      return (
+        <>
+          <ul>
+            {state.map((child, i) => (
+              <li key={i}>Child[{child.name}]</li>
+            ))}
+          </ul>
+          <button onClick={() => void delete state[1]}>Click</button>
+        </>
+      )
+    }
+
+    const { container } = render(<App />)
+
+    screen.getByText('Child[Ash]')
+    screen.getByText('Child[Elijah]')
+    expect(renderCount).toBe(1)
+
+    fireEvent.click(screen.getByRole('button'))
+
+    await screen.findByText('Child[Ash]')
+    expect(container).not.toHaveTextContent('Child[Elijah]')
+    expect(renderCount).toBe(2)
+  })
 })
 
 it('rerenders on changed child of used paths (dupe keys)', async () => {
