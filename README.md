@@ -4,7 +4,7 @@ Ibiza gets out of your way and simply lets you read and write state as you would
 Javascript assignment. It maintains a global state object and is smart enough to know when to
 rerender your components based on state usage and modification.
 
-## How It Works ✨
+## `useIbiza()` ✨
 
 A component calls the `useIbiza` React hook, which returns the store state as a JS Proxy object.
 This Proxy records when a state property is accessed or "used". Then when that property is mutated,
@@ -13,11 +13,11 @@ the component is rerendered.
 This means that you can mutate your state in any way, but your component will only rerender if you
 mutate state that you have used.
 
-State can be mutated from anywhere - not just from within a component.
-
 The following component will rerender when the button is clicked, because `name` has changed.
 
 ```jsx
+import { useIbiza } from 'ibiza'
+
 const App = () => {
   const state = useIbiza()
 
@@ -34,6 +34,8 @@ The following component will not rerender when the button is clicked, because ev
 been mutated, it is not actually being used within the component.
 
 ```jsx
+import { useIbiza } from 'ibiza'
+
 const App = () => {
   const state = useIbiza()
 
@@ -46,6 +48,25 @@ const App = () => {
 }
 ```
 
+State can be mutated from anywhere - not just from within a component:
+
+```js
+import { useIbiza, store } from 'ibiza'
+
+const App = () => {
+  const state = useIbiza()
+
+  return (
+    <div>
+      <h1>Hello {state.name}</h1>
+    </div>
+  )
+}
+
+// <App> component will re-render when this line executes, as `name` has changed.
+store.state.name = 'Ash'
+```
+
 ### Initial State
 
 You can pass some initial state to `useIbiza` which will be merged with existing state in the Ibiza
@@ -55,7 +76,7 @@ store.
 const App = () => {
   const state = useIbiza({ user: { name: 'Joel' } })
 
-  return <h1>Hello {state.name}</h1>
+  return <h1>Hello {state.user.name}</h1>
 }
 ```
 
@@ -99,14 +120,16 @@ const App = () => {
 Note that slicing is really only supported as a convenience, and will not generally help with
 performance.
 
-### Models
+## `createModel()`
 
 Ibiza is at its most powerful when working with models. They provide reusability and flexibility.
 
 Create a model using the `createModel` helper, where the first argument is the model name, and the
-second argument is the initial model state.
+second argument is the initial model state as a plain object.
 
 ```javascript
+// model.js
+
 export default createModel('user', {
   firstName: 'Joel',
   lastName: 'Moss',
@@ -117,7 +140,9 @@ export default createModel('user', {
 `createModel` returns a hook which you can use. You can now import your model anywhere:
 
 ```jsx
-import useModel from './user_model'
+// app.jsx
+
+import useModel from './model'
 
 const App = () => {
   const user = useModel()
@@ -135,7 +160,7 @@ const App = () => {
 }
 ```
 
-#### Initial State
+### Initial State
 
 Sometimes you want to be able to define your model with some initial state that could be provided
 dynamically. For example, from component props or some other parameters.
@@ -145,6 +170,8 @@ initialisation with two arguments; the current `state` and any `props` passed to
 first called.
 
 ```javascript
+// model.js
+
 export default createModel('user', (state, props) => ({
   firstName: 'Joel',
   lastName: 'Moss'
@@ -153,7 +180,9 @@ export default createModel('user', (state, props) => ({
 ```
 
 ```jsx
-import useModel from './user_model'
+// app.jsx
+
+import useModel from './model'
 
 const App = ({ yearOfBirth }) => {
   const user = useModel({ yearOfBirth })
@@ -200,7 +229,7 @@ function sits. This means that if the function is deeply nested, `this` will not
 down.
 
 To solve this, you can call `this.$model` to access your model, or `this.$root` to access the root
-of the state.
+of the store state.
 
 ```javascript
 useIbiza({
@@ -222,7 +251,8 @@ useIbiza({
 })
 ```
 
-Functions accept any number of arguments just like regular functions do.
+Functions accept any number of arguments just like regular functions do, but don't forget that the
+first argument is always the state.
 
 ```jsx
 const App = () => {
@@ -348,7 +378,7 @@ const App = () => {
   return (
     <>
       <h1>Hello {user.name}</h1>
-      <button onClick={() => renameUser()}></button>
+      <button onClick={renameUser}></button>
     </>
   )
 }
