@@ -174,12 +174,12 @@ function hasChangedChildrenFn(path, usedPaths, value, previousValue) {
     const isPath = childPath.includes('.')
 
     let nValue = undefined
-    if (typeof value !== 'undefined') {
+    if (value != null) {
       nValue = isPath ? get(value, childPath) : value[childPath]
     }
 
     let pValue = undefined
-    if (typeof previousValue !== 'undefined') {
+    if (previousValue != null) {
       pValue = isPath ? get(previousValue, childPath) : previousValue[childPath]
     }
 
