@@ -1,4 +1,5 @@
-import { get, set } from 'lodash'
+import get from 'lodash.get'
+import set from 'lodash.set'
 import { useCallback, useReducer, useRef, useEffect, useMemo } from 'react'
 import memoize from 'micro-memoize'
 import { deepEqual } from 'fast-equals'

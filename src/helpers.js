@@ -1,5 +1,3 @@
-import { get } from 'lodash'
-
 // Create a accessor descriptor on the given `obj` at `prop`. This defines a getter and setter
 // with a internally scoped value.
 //

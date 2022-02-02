@@ -1,4 +1,4 @@
-import { get } from 'lodash'
+import get from 'lodash.get'
 
 import { isDate } from './helpers'
 import store, { rawStateOf } from './store.js'
