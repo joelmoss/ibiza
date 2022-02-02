@@ -61,14 +61,3 @@ export function freeze(object) {
 
   return object
 }
-
-export function isDate(date) {
-  return Object.prototype.toString.call(date) === '[object Date]'
-}
-
-export function isPlainObject(value) {
-  if (Object.prototype.toString.call(value) !== '[object Object]') return false
-
-  const prototype = Object.getPrototypeOf(value)
-  return prototype === null || prototype === Object.prototype
-}

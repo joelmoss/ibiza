@@ -1,8 +1,6 @@
 /* global process */
 
-import get from 'lodash.get'
-
-import { isPlainObject, isDate } from './helpers'
+import { get, isPlainObject, isDate } from './utils'
 
 class IbizaStore {
   debug = process.env.NODE_ENV === 'development'

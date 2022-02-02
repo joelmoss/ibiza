@@ -1,6 +1,4 @@
-import get from 'lodash.get'
-
-import { isDate } from './helpers'
+import { get, isDate } from './utils'
 import store, { rawStateOf } from './store.js'
 
 export default proxify
