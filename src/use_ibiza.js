@@ -164,12 +164,10 @@ function hasUsedPath(path, usedPaths) {
 }
 
 function hasChangedChildrenFn(path, usedPaths, value, previousValue) {
-  const regex = new RegExp(`^${path}\\.`)
-
   return usedPaths.find(up => {
     if (!up.startsWith(`${path}.`)) return false
 
-    const childPath = up.replace(regex, '')
+    const childPath = up.slice(path.length + 1)
     const isPath = childPath.includes('.')
 
     let nValue = undefined

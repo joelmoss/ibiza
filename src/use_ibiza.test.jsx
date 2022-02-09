@@ -23,6 +23,13 @@ const server = setupServer(
     return res(ctx.delay(100), ctx.json({ name: 'Joel Moss' }))
   }),
 
+  rest.get('/users/1', async (req, res, ctx) => {
+    return res(ctx.delay(100), ctx.json({ name: 'Joel Moss' }))
+  }),
+  rest.get('/users/2', async (req, res, ctx) => {
+    return res(ctx.delay(100), ctx.json({ name: 'Joel2 Moss2' }))
+  }),
+
   rest.patch('/user', async (req, res, ctx) => {
     return res(ctx.delay(100), ctx.json({ name: 'Ash Moss' }))
   }),
@@ -1499,6 +1506,38 @@ test('getter/setter', async () => {
   expect(renderCount).toBe(2)
 })
 
+test('getter prop dependency change', async () => {
+  store.state = {
+    user: {
+      firstName: 'Joel',
+      lastName: 'Moss',
+      get name() {
+        return `${this.firstName} ${this.lastName}`
+      }
+    }
+  }
+  let renderCount = 0
+  const App = () => {
+    const state = useIbiza()
+    renderCount++
+    return (
+      <>
+        <h1>Name is {state.user.name}</h1>
+        <button onClick={() => (state.user.firstName = 'Bob')}>click</button>
+      </>
+    )
+  }
+
+  render(<App />)
+
+  screen.getByText('Name is Joel Moss')
+
+  fireEvent.click(screen.getByRole('button'))
+
+  await screen.findByText('Name is Bob Moss')
+  expect(renderCount).toBe(2)
+})
+
 test('getter/setter with internal var', async () => {
   let renderCount = 0
   let _name = 'Joel Moss'
@@ -1528,6 +1567,33 @@ test('getter/setter with internal var', async () => {
 
   await screen.findByText('Name is Bob Bones')
   expect(renderCount).toBe(2)
+})
+
+test.skip('async getter', async () => {
+  const fetchSpy = jest.spyOn(store, 'fetchFn')
+  const User = () => {
+    const state = useIbiza({
+      get user() {
+        return store.fetchFn('/user')
+      }
+    })
+
+    return <h1>Name is {state.user.name}</h1>
+  }
+
+  const App = () => {
+    return (
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+      </Suspense>
+    )
+  }
+
+  const { container } = render(<App />)
+  expect(container.textContent).toMatchInlineSnapshot('"fallback"')
+  await act(() => new Promise(res => setTimeout(res, 150)))
+  expect(container.textContent).toMatchInlineSnapshot('"Name is Joel Moss"')
+  expect(fetchSpy).toBeCalledTimes(1)
 })
 
 describe('slicing', () => {
@@ -2189,6 +2255,32 @@ describe('URL backed state', () => {
     await act(() => new Promise(res => setTimeout(res, 150)))
     expect(container.textContent).toMatchInlineSnapshot('"Joel Moss"')
     expect(fetchSpy).toBeCalledTimes(1)
+  })
+
+  it('URL with search params', async () => {
+    function User() {
+      const user = useIbiza('/user?')
+      return <div>/user.name=[{user.name}]</div>
+    }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      )
+    }
+
+    render(<App />)
+
+    await act(() => new Promise(res => setTimeout(res, 150)))
+
+    screen.getByText('/user.name=[Joel Moss]')
+
+    act(() => {
+      store.state['/user?'] = { name: 'Ash Moss' }
+    })
+
+    await screen.findByText('/user.name=[Ash Moss]')
   })
 
   it('throws on failed fetch', async () => {
