@@ -99,6 +99,8 @@ class IbizaStore {
     const { suspense, ...options } = opts
 
     const thenCallback = response => {
+      this.fetches[resource].status = 'success'
+
       if (response === null) return response
 
       return (this.fetches[resource].response =
@@ -115,9 +117,11 @@ class IbizaStore {
     // Suspenseful fetch.
     if (!this.fetches[resource]) {
       this.fetches[resource] = {
+        status: 'start',
         fetch: fetchFn(resource, options)
           .then(thenCallback)
           .catch(error => {
+            this.fetches[resource].status = 'error'
             this.fetches[resource].error = error
           })
       }
@@ -145,6 +149,20 @@ class IbizaStore {
       return parentPath ? [parentPath, prop].join('.') : prop
     }
 
+    // Returns the fetcher (from store.fetches) for the given `prop`.
+    const getFetcherByProp = prop => {
+      if (prop.indexOf('/') !== 0) {
+        const path = buildPath(prop)
+        if (path.indexOf('/') === 0) {
+          prop = path.split('.')[0]
+        }
+      }
+
+      if (Object.prototype.hasOwnProperty.call(this.fetches, prop)) {
+        return this.fetches[prop]
+      }
+    }
+
     // eslint-disable-next-line unicorn/no-this-assignment
     const $this = this
 
@@ -154,6 +172,7 @@ class IbizaStore {
         if (prop === 'isStoreProxy') return true
         if (prop === 'isHookProxy') return false
         if (prop === '__path') return parentPath
+        if (prop === '__fetcher') return getFetcherByProp(parentPath)
 
         // Return save function if we are in a URL model.
         if (prop === 'save') {

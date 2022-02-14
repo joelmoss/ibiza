@@ -2469,7 +2469,7 @@ describe('URL backed state', () => {
     expect(fetchSpy).toBeCalledTimes(2)
   })
 
-  it('store.refetch', async () => {
+  test('.refetch', async () => {
     const fetchSpy = jest.spyOn(store, 'fetchFn')
 
     function User() {
@@ -2508,6 +2508,29 @@ describe('URL backed state', () => {
 
     await screen.findByText('Joel Moss')
     expect(fetchSpy).toBeCalledTimes(2)
+  })
+
+  test('.__fetcher', async () => {
+    function User() {
+      const user = useIbiza('/user')
+      return <div>{user.name}</div>
+    }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      )
+    }
+
+    render(<App />)
+
+    await act(() => new Promise(res => setTimeout(res, 150)))
+
+    expect(store.state['/user'].__fetcher).toEqual({
+      status: 'success',
+      response: { name: 'Joel Moss' }
+    })
   })
 
   it.skip('refetch should rerender only on changed props', async () => {
