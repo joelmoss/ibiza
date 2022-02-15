@@ -27,6 +27,7 @@
   "module": "dist/ibiza.module.js",
   "unpkg": "dist/ibiza.umd.js",
   "exports": {
+    "development": "./index.js",
     "require": "./dist/ibiza.cjs",
     "default": "./dist/ibiza.modern.js"
   },

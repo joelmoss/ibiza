@@ -2,7 +2,7 @@ import { useCallback, useReducer, useRef, useEffect, useMemo } from 'react'
 import memoize from 'micro-memoize'
 import { deepEqual } from 'fast-equals'
 
-import { isPlainObject, isDate, get, set } from './utils'
+import { isPlainObject, isDate, get, set } from './utils.js'
 import useComponentName from './use_component_name.js'
 import proxify from './proxify.js'
 import store from './store.js'

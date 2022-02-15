@@ -1,4 +1,4 @@
-import { get, isDate } from './utils'
+import { get, isDate } from './utils.js'
 import store, { rawStateOf } from './store.js'
 
 export default proxify

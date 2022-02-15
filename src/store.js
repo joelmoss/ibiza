@@ -1,6 +1,6 @@
 /* global process */
 
-import { get, isPlainObject, isDate } from './utils'
+import { get, isPlainObject, isDate } from './utils.js'
 
 class IbizaStore {
   debug = process.env.NODE_ENV === 'development'
