@@ -56,6 +56,13 @@ test('unsubscribe from changes', () => {
   expect(callback).toBeCalledTimes(1)
 })
 
+test('.__raw returns raw state', () => {
+  store.state = { user: { name: 'Joel' } }
+
+  expect(store.state.user.__raw).toEqual({ name: 'Joel' })
+  expect(store.state.user.__raw.isProxy).toBeUndefined()
+})
+
 describe('state mutation', () => {
   it('assign new state', () => {
     const cb = jest.fn()

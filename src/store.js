@@ -174,6 +174,10 @@ class IbizaStore {
         if (prop === '__path') return parentPath
         if (prop === '__fetcher') return getFetcherByProp(parentPath)
 
+        if (prop === '__raw') {
+          return parentPath ? get($this.rawState, parentPath) : $this.rawState
+        }
+
         // Return save function if we are in a URL model.
         if (prop === 'save') {
           const path = buildPath(prop)

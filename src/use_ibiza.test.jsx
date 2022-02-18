@@ -480,6 +480,53 @@ describe('mutating', () => {
     await screen.findByText('Ash Moss')
   })
 
+  it.skip('should rerender when function reads state', async () => {
+    store.state = {
+      count: 1,
+      add() {
+        this.count++
+      }
+    }
+
+    let renderCountApp = 0
+    let renderCountCount = 0
+    let renderCountButton = 0
+
+    function App() {
+      renderCountApp++
+      return (
+        <>
+          <Count />
+          <Button />
+        </>
+      )
+    }
+    function Count() {
+      renderCountCount++
+      const state = useIbiza()
+      return <div>count[{state.count}]</div>
+    }
+    function Button() {
+      renderCountButton++
+      const state = useIbiza()
+      return <button onClick={state.add}>click</button>
+    }
+
+    render(<App />)
+
+    // screen.getByText('count[1]')
+    expect(renderCountApp).toBe(1)
+    expect(renderCountCount).toBe(1)
+    expect(renderCountButton).toBe(1)
+
+    fireEvent.click(screen.getByRole('button'))
+
+    // await screen.findByText('count[2]')
+    expect(renderCountApp).toBe(1)
+    expect(renderCountCount).toBe(2)
+    expect(renderCountButton).toBe(1)
+  })
+
   it('can redefine object with slice', async () => {
     store.state = { user: { name: 'Joel Moss' } }
     function App() {
