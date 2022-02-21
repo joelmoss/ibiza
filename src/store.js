@@ -2,6 +2,10 @@
 
 import { get, isPlainObject, isDate } from './utils.js'
 
+export const isQuery = Symbol('ibizaIsQuery')
+export const QUERY_URL = Symbol('ibizaQueryUrl')
+export const queryFn = Symbol('ibizaQueryFunction')
+
 class IbizaStore {
   debug = process.env.NODE_ENV === 'development'
 
@@ -251,8 +255,21 @@ class IbizaStore {
           }
         }
 
-        // If path is a URL state, then fetch it if it has not already.
-        if (prop.indexOf('/') === 0) {
+        if (result?.[isQuery]) {
+          const url = result[queryFn].call(receiver)
+
+          throwOnFetchError(url)
+          if (shouldFetch(url)) {
+            const fetchResult = $this.fetch(url, { suspense: true })
+
+            Object.defineProperty(fetchResult, isQuery, { value: true })
+            Object.defineProperty(fetchResult, queryFn, { value: result[queryFn] })
+
+            this.set(target, prop, fetchResult, receiver)
+
+            result = fetchResult
+          }
+        } else if (prop.indexOf('/') === 0) {
           throwOnFetchError(prop)
 
           if (shouldFetch(prop)) {
@@ -272,7 +289,8 @@ class IbizaStore {
           }
         }
 
-        // If result is an object, but not null, it must be a nested object, so proxify and return.
+        // If result is an Object, not null and not a Date, it must be a nested object, so proxify
+        // and return.
         if (result !== null && typeof result === 'object' && !isDate(result)) {
           return $this.#proxyOf(result, path)
         }

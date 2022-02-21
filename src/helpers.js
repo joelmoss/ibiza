@@ -1,3 +1,5 @@
+import { isQuery, QUERY_URL, queryFn } from './store.js'
+
 // Create a accessor descriptor on the given `obj` at `prop`. This defines a getter and setter
 // with a internally scoped value.
 //
@@ -35,6 +37,15 @@ export function createAccessor(obj, prop, options = {}) {
       }
     }
   })
+}
+
+export function query(fn) {
+  const queryDef = {}
+
+  Object.defineProperty(queryDef, isQuery, { value: true })
+  Object.defineProperty(queryDef, queryFn, { value: fn })
+
+  return queryDef
 }
 
 export function freeze(object) {

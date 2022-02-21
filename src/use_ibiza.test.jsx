@@ -10,6 +10,7 @@ import { setupServer } from 'msw/node'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import useIbiza from './use_ibiza.js'
+import { query } from './helpers.js'
 import store, { rawStateOf } from './store.js'
 
 const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resolve(data), ms))
@@ -2733,6 +2734,105 @@ describe('URL backed state', () => {
 
   //   it.todo('can pass params')
   //   // useIbiza(['/user', { foo: 'bar' }])
+})
+
+describe('query()', () => {
+  it('re-renders on changed dependencies', async () => {
+    const fetchSpy = jest.spyOn(store, 'fetchFn')
+
+    store.state = {
+      id: 1,
+      user: query(function () {
+        return `/users/${this.id}`
+      })
+    }
+
+    function User() {
+      const { user } = useIbiza()
+      return <div>{user.name}</div>
+    }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      )
+    }
+
+    render(<App />)
+
+    screen.getByText('fallback')
+    await screen.findByText('Joel Moss')
+
+    act(() => void (store.state.id = 2))
+
+    await screen.findByText('Joel2 Moss2')
+    expect(fetchSpy).toBeCalledTimes(2)
+  })
+
+  it('does not refetch on re-render', async () => {
+    const fetchSpy = jest.spyOn(store, 'fetchFn')
+
+    store.state = {
+      id: 1,
+      user: query(function () {
+        return `/users/${this.id}`
+      })
+    }
+
+    function User() {
+      const { user } = useIbiza()
+      return <div>{user.name}</div>
+    }
+    const App = () => {
+      const [count, setCount] = useState(0)
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+          <button onClick={() => setCount(2)}>click</button>
+        </Suspense>
+      )
+    }
+
+    render(<App />)
+
+    screen.getByText('fallback')
+    await screen.findByText('Joel Moss')
+
+    fireEvent.click(screen.getByRole('button'))
+
+    await screen.findByText('Joel Moss')
+    expect(fetchSpy).toBeCalledTimes(1)
+  })
+
+  test('is proxied', async () => {
+    const fetchSpy = jest.spyOn(store, 'fetchFn')
+
+    store.state = {
+      id: 1,
+      user: query(function () {
+        return `/users/${this.id}`
+      })
+    }
+
+    function User() {
+      const { user } = useIbiza()
+      return <div>{user.name}</div>
+    }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      )
+    }
+
+    render(<App />)
+
+    screen.getByText('fallback')
+    await screen.findByText('Joel Moss')
+    expect(store.state.user.isProxy).toBe(true)
+  })
 })
 
 it.skip('full proxy', () => {
