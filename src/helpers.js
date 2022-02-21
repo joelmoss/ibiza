@@ -1,5 +1,7 @@
-import { isQuery, QUERY_URL, queryFn } from './store.js'
+import { isQuery, queryUrl, queryFn, isAccessor, accessorOptions } from './store.js'
 
+// DEPRECATED - use accessor() instead
+//
 // Create a accessor descriptor on the given `obj` at `prop`. This defines a getter and setter
 // with a internally scoped value.
 //
@@ -39,13 +41,57 @@ export function createAccessor(obj, prop, options = {}) {
   })
 }
 
+export function accessor(options = {}) {
+  function definition(target, prop, receiver) {
+    let _manuallySet = false
+    let _value = options.initialValue
+
+    const setValue = value => {
+      _value = value
+      _manuallySet = true
+    }
+
+    Object.defineProperty(target, prop, {
+      get() {
+        return options.onGet ? options.onGet.call(this, _value) : _value
+      },
+
+      set(newValue) {
+        options.onSet?.call(this, _value, newValue, setValue)
+
+        if (_manuallySet) {
+          _manuallySet = false
+        } else {
+          _value = newValue
+        }
+      }
+    })
+
+    return Reflect.get(target, prop, receiver)
+  }
+
+  Object.defineProperty(definition, isAccessor, { value: true })
+
+  return definition
+
+  const def = {}
+
+  function get() {
+    return options.onGet ? options.onGet.call(this, _value) : _value
+  }
+
+  Object.defineProperty(def, isAccessor, { value: true })
+  Object.defineProperty(def, accessorOptions, { value: options })
+
+  return def
+}
 export function query(fn) {
-  const queryDef = {}
+  const def = {}
 
-  Object.defineProperty(queryDef, isQuery, { value: true })
-  Object.defineProperty(queryDef, queryFn, { value: fn })
+  Object.defineProperty(def, isQuery, { value: true })
+  Object.defineProperty(def, queryFn, { value: fn })
 
-  return queryDef
+  return def
 }
 
 export function freeze(object) {

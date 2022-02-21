@@ -2,8 +2,10 @@
 
 import { get, isPlainObject, isDate } from './utils.js'
 
+export const isAccessor = Symbol('ibizaIsAccessor')
+export const accessorOptions = Symbol('ibizaAccessorOptions')
 export const isQuery = Symbol('ibizaIsQuery')
-export const QUERY_URL = Symbol('ibizaQueryUrl')
+export const queryUrl = Symbol('ibizaQueryUrl')
 export const queryFn = Symbol('ibizaQueryFunction')
 
 class IbizaStore {
@@ -253,6 +255,10 @@ class IbizaStore {
           ) {
             throw $this.fetches[prop].error
           }
+        }
+
+        if (result?.[isAccessor]) {
+          return result(target, prop, receiver)
         }
 
         if (result?.[isQuery]) {

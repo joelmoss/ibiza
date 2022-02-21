@@ -10,7 +10,7 @@ import { setupServer } from 'msw/node'
 import { ErrorBoundary } from 'react-error-boundary'
 
 import useIbiza from './use_ibiza.js'
-import { query } from './helpers.js'
+import { query, accessor, createAccessor } from './helpers.js'
 import store, { rawStateOf } from './store.js'
 
 const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resolve(data), ms))
@@ -2734,6 +2734,197 @@ describe('URL backed state', () => {
 
   //   it.todo('can pass params')
   //   // useIbiza(['/user', { foo: 'bar' }])
+})
+
+describe('createAccessor()', () => {
+  it('can be get and set', async () => {
+    store.state = { id: 1 }
+    createAccessor(store.state, 'user')
+
+    function App() {
+      const model = useIbiza()
+      return <div>user=[{model.user}]</div>
+    }
+
+    render(<App />)
+
+    screen.getByText('user=[]')
+
+    act(() => void (store.state.user = 'Joel'))
+
+    screen.getByText('user=[Joel]')
+  })
+
+  it('can define an initialValue', async () => {
+    store.state = { id: 1 }
+    createAccessor(store.state, 'user', {
+      initialValue: { name: 'Joel' }
+    })
+
+    function App() {
+      const model = useIbiza()
+      return <div>user.name=[{model.user.name}]</div>
+    }
+
+    render(<App />)
+
+    screen.getByText('user.name=[Joel]')
+  })
+
+  test('onGet/onSet callbacks', async () => {
+    store.state = { id: 1 }
+    const accessorOptions = {
+      initialValue: 'Joel',
+      onGet(v) {
+        return `${v}(${this.id})`
+      },
+      onSet(oldV, newV) {}
+    }
+    createAccessor(store.state, 'user', accessorOptions)
+
+    const onGetSpy = jest.spyOn(accessorOptions, 'onGet')
+    const onSetSpy = jest.spyOn(accessorOptions, 'onSet')
+
+    function App() {
+      const model = useIbiza()
+      return <div>user=[{model.user}]</div>
+    }
+
+    render(<App />)
+
+    screen.getByText('user=[Joel(1)]')
+    expect(onGetSpy).toBeCalledTimes(1)
+    expect(onSetSpy).toBeCalledTimes(0)
+
+    act(() => void (store.state.user = 'Ash'))
+
+    screen.getByText('user=[Ash(1)]')
+    expect(onGetSpy).toBeCalledTimes(3)
+    expect(onSetSpy).toBeCalledTimes(1)
+  })
+
+  test('onSet with setValue()', async () => {
+    store.state = {}
+    const accessorOptions = {
+      initialValue: 'Joel',
+      onSet(oldV, newV, setValue) {
+        setValue(`${newV}ley`)
+      }
+    }
+    createAccessor(store.state, 'user', accessorOptions)
+
+    const onSetSpy = jest.spyOn(accessorOptions, 'onSet')
+
+    function App() {
+      const model = useIbiza()
+      return <div>user=[{model.user}]</div>
+    }
+
+    render(<App />)
+
+    screen.getByText('user=[Joel]')
+    expect(onSetSpy).toBeCalledTimes(0)
+
+    act(() => void (store.state.user = 'Ash'))
+
+    screen.getByText('user=[Ashley]')
+    expect(onSetSpy).toBeCalledTimes(1)
+  })
+})
+
+describe('accessor()', () => {
+  it('can be get and set', async () => {
+    store.state = { id: 1, user: accessor() }
+
+    function App() {
+      const model = useIbiza()
+      return <div>user=[{model.user}]</div>
+    }
+
+    render(<App />)
+
+    screen.getByText('user=[]')
+
+    act(() => void (store.state.user = 'Joel'))
+
+    screen.getByText('user=[Joel]')
+  })
+
+  it('can define an initialValue', async () => {
+    store.state = {
+      id: 1,
+      user: accessor({
+        initialValue: { name: 'Joel' }
+      })
+    }
+
+    function App() {
+      const model = useIbiza()
+      return <div>user.name=[{model.user.name}]</div>
+    }
+
+    render(<App />)
+
+    screen.getByText('user.name=[Joel]')
+  })
+
+  test('onGet/onSet callbacks', async () => {
+    const accessorOptions = {
+      initialValue: 'Joel',
+      onGet(v) {
+        return `${v}(${this.id})`
+      },
+      onSet(oldV, newV) {}
+    }
+    store.state = { id: 1, user: accessor(accessorOptions) }
+
+    const onGetSpy = jest.spyOn(accessorOptions, 'onGet')
+    const onSetSpy = jest.spyOn(accessorOptions, 'onSet')
+
+    function App() {
+      const model = useIbiza()
+      return <div>user=[{model.user}]</div>
+    }
+
+    render(<App />)
+
+    screen.getByText('user=[Joel(1)]')
+    expect(onGetSpy).toBeCalledTimes(1)
+    expect(onSetSpy).toBeCalledTimes(0)
+
+    act(() => void (store.state.user = 'Ash'))
+
+    screen.getByText('user=[Ash(1)]')
+    expect(onGetSpy).toBeCalledTimes(3)
+    expect(onSetSpy).toBeCalledTimes(1)
+  })
+
+  test('onSet with setValue()', async () => {
+    const accessorOptions = {
+      initialValue: 'Joel',
+      onSet(oldV, newV, setValue) {
+        setValue(`${newV}ley`)
+      }
+    }
+    store.state = { user: accessor(accessorOptions) }
+
+    const onSetSpy = jest.spyOn(accessorOptions, 'onSet')
+
+    function App() {
+      const model = useIbiza()
+      return <div>user=[{model.user}]</div>
+    }
+
+    render(<App />)
+
+    screen.getByText('user=[Joel]')
+    expect(onSetSpy).toBeCalledTimes(0)
+
+    act(() => void (store.state.user = 'Ash'))
+
+    screen.getByText('user=[Ashley]')
+    expect(onSetSpy).toBeCalledTimes(1)
+  })
 })
 
 describe('query()', () => {
