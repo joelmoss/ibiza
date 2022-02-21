@@ -31,6 +31,25 @@ const server = setupServer(
     return res(ctx.delay(100), ctx.json({ name: 'Joel2 Moss2' }))
   }),
 
+  rest.get('/users/page=1', async (req, res, ctx) => {
+    return res(
+      ctx.delay(100),
+      ctx.json([
+        { id: 1, name: 'Joel1 Moss1' },
+        { id: 2, name: 'Joel2 Moss2' }
+      ])
+    )
+  }),
+  rest.get('/users/page=2', async (req, res, ctx) => {
+    return res(
+      ctx.delay(100),
+      ctx.json([
+        { id: 3, name: 'Joel3 Moss3' },
+        { id: 4, name: 'Joel4 Moss4' }
+      ])
+    )
+  }),
+
   rest.patch('/user', async (req, res, ctx) => {
     return res(ctx.delay(100), ctx.json({ name: 'Ash Moss' }))
   }),
@@ -2928,6 +2947,56 @@ describe('accessor()', () => {
 })
 
 describe('query()', () => {
+  it('caches', async () => {
+    const fetchSpy = jest.spyOn(store, 'fetchFn')
+
+    // store.debug = true
+    store.state = {
+      page: 1,
+      users: query(function () {
+        return `/users/page=${this.page}`
+      })
+    }
+
+    function Users() {
+      const { users } = useIbiza()
+      return (
+        <div>
+          {users.map((user, i) => (
+            <div key={i}>
+              {user.id}[{user.name}]
+            </div>
+          ))}
+        </div>
+      )
+    }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <Users />
+        </Suspense>
+      )
+    }
+
+    render(<App />)
+
+    screen.getByText('fallback')
+    await screen.findByText('1[Joel1 Moss1]')
+    await screen.findByText('2[Joel2 Moss2]')
+
+    act(() => void (store.state.page = 2))
+
+    await screen.findByText('3[Joel3 Moss3]')
+    await screen.findByText('4[Joel4 Moss4]')
+
+    act(() => void (store.state.page = 1))
+
+    await screen.findByText('1[Joel1 Moss1]')
+    await screen.findByText('2[Joel2 Moss2]')
+
+    expect(fetchSpy).toBeCalledTimes(2)
+  })
+
   it('re-renders on changed dependencies', async () => {
     const fetchSpy = jest.spyOn(store, 'fetchFn')
 

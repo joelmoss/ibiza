@@ -263,6 +263,7 @@ class IbizaStore {
 
         if (result?.[isQuery]) {
           const url = result[queryFn].call(receiver)
+          // console.log(1, { prop, url, shouldFetch: shouldFetch(url), result })
 
           throwOnFetchError(url)
           if (shouldFetch(url)) {
@@ -272,8 +273,9 @@ class IbizaStore {
             Object.defineProperty(fetchResult, queryFn, { value: result[queryFn] })
 
             this.set(target, prop, fetchResult, receiver)
-
             result = fetchResult
+          } else if (Object.prototype.hasOwnProperty.call($this.fetches, url)) {
+            result = $this.fetches[url].response
           }
         } else if (prop.indexOf('/') === 0) {
           throwOnFetchError(prop)
