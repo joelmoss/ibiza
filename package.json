@@ -21,17 +21,13 @@
     "dist/**"
   ],
   "type": "module",
-  "module": "src/index.js",
-  "publishConfig": {
-    "source": "src/index.js",
-    "main": "dist/ibiza.cjs",
-    "module": "dist/ibiza.module.js",
-    "unpkg": "dist/ibiza.umd.js",
-    "exports": {
-      "development": "./src/index.js",
-      "require": "./dist/ibiza.cjs",
-      "default": "./dist/ibiza.modern.js"
-    }
+  "source": "src/index.js",
+  "main": "dist/ibiza.cjs",
+  "module": "dist/ibiza.module.js",
+  "unpkg": "dist/ibiza.umd.js",
+  "exports": {
+    "require": "./dist/ibiza.cjs",
+    "default": "./dist/ibiza.modern.js"
   },
   "sideEffects": false,
   "scripts": {
