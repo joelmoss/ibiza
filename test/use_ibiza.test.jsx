@@ -1,17 +1,14 @@
 /* eslint-disable testing-library/no-node-access */
 /* eslint-disable react/prop-types */
 /* eslint-disable react/display-name */
-import { Suspense, useCallback, useEffect, useState } from 'react'
-import ReactDOM from 'react-dom'
 import { render, act, fireEvent, screen } from '@testing-library/react'
 import { renderHook, act as hookAct } from '@testing-library/react-hooks'
+import React, { Suspense, useCallback, useEffect, useState } from 'react'
+import ReactDOM from 'react-dom'
 import { rest } from 'msw'
 import { setupServer } from 'msw/node'
 import { ErrorBoundary } from 'react-error-boundary'
-
-import useIbiza from './use_ibiza.js'
-import { query, accessor, createAccessor } from './helpers.js'
-import store, { rawStateOf } from './store.js'
+import { useIbiza, store, query, accessor, createAccessor, rawStateOf } from 'ibiza'
 
 const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resolve(data), ms))
 

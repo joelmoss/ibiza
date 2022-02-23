@@ -348,7 +348,7 @@ const App = () => {
 ### URL Models
 
 Because reading and writing to/from the server is so common, Ibiza has support to make this easy
-with URL Models, similar to react-query. Simply use a valid and relative URL as you model name or
+with URL Models, similar to react-query. Simply use a valid and relative URL as your model name or
 slice.
 
 The following will fetch the user from the server at `/user`, suspending the component while it does

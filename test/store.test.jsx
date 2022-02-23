@@ -1,9 +1,8 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable react/display-name */
 import { render, act, screen } from '@testing-library/react'
-
-import useIbiza from './use_ibiza.js'
-import store from './store.js'
+import React from 'react'
+import { useIbiza, store } from 'ibiza'
 
 afterEach(() => store.reset())
 

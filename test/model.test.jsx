@@ -1,12 +1,9 @@
 import { render, fireEvent, act, screen } from '@testing-library/react'
 import { renderHook, act as hookAct } from '@testing-library/react-hooks'
+import React, { Suspense } from 'react'
 import { rest } from 'msw'
 import { setupServer } from 'msw/node'
-import { Suspense } from 'react'
-
-import { createModel } from './model.js'
-import store from './store.js'
-import { freeze } from './helpers.js'
+import { store, freeze, createModel } from 'ibiza'
 
 const server = setupServer(
   rest.get('/post', async (req, res, ctx) => {
