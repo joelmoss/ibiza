@@ -1194,7 +1194,28 @@ describe('mutating', () => {
     expect(renderCountChild).toBe(2)
   })
 
-  it.todo('Defining new object on state should cause re-render')
+  it.skip('should re-render on re-assigning of tracked object', () => {
+    let renderCount = 0
+    store.debug = true
+    store.state.params = { name: 'Joel' }
+    const App = () => {
+      renderCount++
+      const state = useIbiza()
+      return <>[{state.params ? 'True' : 'False'}]</>
+    }
+
+    render(<App />)
+
+    screen.getByText('[True]')
+    expect(renderCount).toBe(1)
+
+    act(() => {
+      store.state.params = null
+    })
+
+    screen.getByText('[False]')
+    expect(renderCount).toBe(2)
+  })
 })
 
 describe('arrays', () => {
