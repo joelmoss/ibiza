@@ -1,5 +1,4 @@
 import { render, fireEvent, act, screen } from '@testing-library/react'
-import { renderHook, act as hookAct } from '@testing-library/react-hooks'
 import React, { Suspense } from 'react'
 import { rest } from 'msw'
 import { setupServer } from 'msw/node'
@@ -30,9 +29,14 @@ it('merges initial state', () => {
     ...props
   }))
 
-  const { result } = renderHook(() => usePost({ title: 'Post#2' }))
+  const App = () => {
+    const state = usePost({ title: 'Post#2' })
+    return <h1>state.title=[{state.title}]</h1>
+  }
 
-  expect(result.current.title).toBe('Post#2')
+  render(<App />)
+
+  screen.getByText('state.title=[Post#2]')
 })
 
 it('merges initial state only once', async () => {
@@ -60,9 +64,14 @@ it('gets attribute', () => {
     title: 'Post#1'
   })
 
-  const { result } = renderHook(() => usePost())
+  const App = () => {
+    const state = usePost()
+    return <h1>state.title=[{state.title}]</h1>
+  }
 
-  expect(result.current.title).toBe('Post#1')
+  render(<App />)
+
+  screen.getByText('state.title=[Post#1]')
 })
 
 it('sets attribute', () => {
@@ -70,15 +79,20 @@ it('sets attribute', () => {
     title: 'Post#1'
   })
 
-  const { result } = renderHook(() => usePost())
+  const App = () => {
+    const state = usePost()
+    return <h1>state.title=[{state.title}]</h1>
+  }
 
-  expect(result.current.title).toBe('Post#1')
+  render(<App />)
 
-  hookAct(() => {
-    result.current.title = 'Post#2'
+  screen.getByText('state.title=[Post#1]')
+
+  act(() => {
+    store.state.post.title = 'Post#2'
   })
 
-  expect(result.current.title).toBe('Post#2')
+  screen.getByText('state.title=[Post#2]')
 })
 
 it('can pass slice', async () => {
@@ -312,9 +326,14 @@ describe('freezing', () => {
       user: freeze({ firstName: 'Joel' })
     })
 
-    const { result } = renderHook(() => usePost())
+    const App = () => {
+      const state = usePost()
+      return <h1>state.user.firstName=[{state.user.firstName}]</h1>
+    }
 
-    expect(result.current.user.firstName).toBe('Joel')
+    render(<App />)
+
+    screen.getByText('state.user.firstName=[Joel]')
   })
 
   it('throws on write', () => {
@@ -323,15 +342,22 @@ describe('freezing', () => {
       user: freeze({ firstName: 'Joel' })
     })
 
-    const { result } = renderHook(() => usePost())
+    const App = () => {
+      const state = usePost()
+      return <h1>state.user.firstName=[{state.user.firstName}]</h1>
+    }
 
-    hookAct(() => {
+    render(<App />)
+
+    screen.getByText('state.user.firstName=[Joel]')
+
+    act(() => {
       expect(() => {
-        result.current.user.firstName = 'Ash'
+        store.state.post.user.firstName = 'Ash'
       }).toThrow()
     })
 
-    expect(result.current.user.firstName).toBe('Joel')
+    screen.getByText('state.user.firstName=[Joel]')
   })
 
   it('throws on deep write', () => {
@@ -340,20 +366,27 @@ describe('freezing', () => {
       user: freeze({ deep: { name: { firstName: 'Joel' } } })
     })
 
-    const { result } = renderHook(() => usePost())
+    const App = () => {
+      const state = usePost()
+      return <h1>state.user.deep.name.firstName=[{state.user.deep.name.firstName}]</h1>
+    }
 
-    expect(Object.isFrozen(result.current.user)).toBeTruthy()
-    expect(Object.isFrozen(result.current.user.deep)).toBeTruthy()
-    expect(Object.isFrozen(result.current.user.deep.name)).toBeTruthy()
-    expect(Object.isFrozen(result.current.user.deep.name.firstName)).toBeTruthy()
+    render(<App />)
 
-    hookAct(() => {
+    screen.getByText('state.user.deep.name.firstName=[Joel]')
+
+    expect(Object.isFrozen(store.state.post.user)).toBeTruthy()
+    expect(Object.isFrozen(store.state.post.user.deep)).toBeTruthy()
+    expect(Object.isFrozen(store.state.post.user.deep.name)).toBeTruthy()
+    expect(Object.isFrozen(store.state.post.user.deep.name.firstName)).toBeTruthy()
+
+    act(() => {
       expect(() => {
         result.current.user.deep.name.firstName = 'Ash'
       }).toThrow()
     })
 
-    expect(result.current.user.deep.name.firstName).toBe('Joel')
+    screen.getByText('state.user.deep.name.firstName=[Joel]')
   })
 })
 

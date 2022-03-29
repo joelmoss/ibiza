@@ -91,21 +91,21 @@
     "@swc/core": "^1.2.144",
     "@swc/jest": "^0.2.17",
     "@testing-library/jest-dom": "^5.15.0",
-    "@testing-library/react": "^12.1.2",
+    "@testing-library/react": "^13.0.0",
     "@testing-library/react-hooks": "^7.0.2",
     "cross-fetch": "^3.1.4",
     "fetch-mock-jest": "^1.5.1",
     "ibiza": "link:./ibiza",
     "jest": "^27.3.1",
     "microbundle": "^0.14.2",
-    "msw": "^0.36.0",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
+    "msw": "^0.39.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
     "rimraf": "^3.0.2",
     "size-limit": "^7.0.0"
   },
   "dependencies": {
-    "fast-equals": "^2.0.3",
+    "fast-equals": "^3.0.0",
     "micro-memoize": "^4.0.9"
   }
 }
