@@ -84,7 +84,7 @@
     "arrowParens": "avoid"
   },
   "peerDependencies": {
-    "react": ">=16"
+    "react": ">=17"
   },
   "devDependencies": {
     "@size-limit/preset-big-lib": "^7.0.1",
@@ -92,20 +92,22 @@
     "@swc/jest": "^0.2.17",
     "@testing-library/jest-dom": "^5.15.0",
     "@testing-library/react": "^13.0.0",
-    "@testing-library/react-hooks": "^7.0.2",
     "cross-fetch": "^3.1.4",
     "fetch-mock-jest": "^1.5.1",
     "ibiza": "link:./ibiza",
-    "jest": "^27.3.1",
-    "microbundle": "^0.14.2",
-    "msw": "^0.39.0",
+    "jest": "^28.1.0",
+    "jest-environment-jsdom": "^28.1.0",
+    "microbundle": "^0.15.0",
+    "msw": "^0.42",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "react-error-boundary": "^3.1.4",
     "rimraf": "^3.0.2",
     "size-limit": "^7.0.0"
   },
   "dependencies": {
-    "fast-equals": "^3.0.0",
-    "micro-memoize": "^4.0.9"
+    "fast-equals": "^4.0.0",
+    "micro-memoize": "^4.0.9",
+    "use-sync-external-store": "^1.2.0"
   }
 }

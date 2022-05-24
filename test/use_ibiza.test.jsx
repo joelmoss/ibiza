@@ -1,9 +1,8 @@
 /* eslint-disable testing-library/no-node-access */
 /* eslint-disable react/prop-types */
 /* eslint-disable react/display-name */
-import { render, act, fireEvent, screen } from '@testing-library/react'
-import { renderHook, act as hookAct } from '@testing-library/react-hooks'
-import React, { Suspense, useCallback, useEffect, useState } from 'react'
+import { render, renderHook, act, fireEvent, screen } from '@testing-library/react'
+import React, { useSyncExternalStore, Suspense, useCallback, useEffect, useState } from 'react'
 import ReactDOM from 'react-dom'
 import { rest } from 'msw'
 import { setupServer } from 'msw/node'
@@ -86,15 +85,7 @@ describe('initial state', () => {
     expect(store.rawState).toMatchSnapshot()
   })
 
-  it('merges', () => {
-    const App = () => {
-      return (
-        <>
-          <Child1 />
-          <Child2 />
-        </>
-      )
-    }
+  it('merges initial state from different components', () => {
     const Child1 = () => {
       const state = useIbiza({
         count: 0,
@@ -115,12 +106,17 @@ describe('initial state', () => {
       return <h1>Count1 is [{state.count1}]</h1>
     }
 
-    render(<App />)
+    render(
+      <>
+        <Child1 />
+        <Child2 />
+      </>
+    )
 
     expect(store.rawState).toMatchSnapshot()
   })
 
-  it('merges only once', async () => {
+  it('merges initial state only once', async () => {
     const App = props => {
       const state = useIbiza(props)
       return <h1>Count is [{state.count}]</h1>
@@ -270,7 +266,17 @@ describe('initial state', () => {
     expect(iStateFn).toHaveBeenCalledTimes(1)
   })
 
-  it('can pass slice, and function', () => {
+  it('can pass slice, and initial state object', () => {
+    store.state = { user: { name: 'Joel Moss' } }
+    const { result } = renderHook(() => useIbiza('user', { age: 45 }))
+
+    expect(rawStateOf(result.current)).toEqual({
+      name: 'Joel Moss',
+      age: 45
+    })
+  })
+
+  it('can pass slice, and initial state function', () => {
     store.state = { user: { name: 'Joel Moss' } }
     const iState = jest.fn(s => {
       const [firstName, lastName] = s.name.split(' ')
@@ -349,7 +355,7 @@ describe('store.state == hook state', () => {
     store.state = { count: 0 }
     const { result } = renderHook(() => useIbiza())
 
-    hookAct(() => {
+    act(() => {
       ++result.current.count
     })
 
@@ -360,7 +366,7 @@ describe('store.state == hook state', () => {
     store.state = { user: { count: 0 } }
     const { result } = renderHook(() => useIbiza('user'))
 
-    hookAct(() => {
+    act(() => {
       ++result.current.count
     })
 
@@ -406,24 +412,36 @@ describe('mutating', () => {
   describe('single prop', () => {
     it('basic', () => {
       store.state = { count: 0 }
-      const { result } = renderHook(() => useIbiza())
+      function App() {
+        const state = useIbiza()
 
-      hookAct(() => {
-        ++result.current.count
+        return <h1>state.count=[{state.count}]</h1>
+      }
+
+      render(<App />)
+      screen.getByText('state.count=[0]')
+
+      act(() => {
+        ++store.state.count
       })
 
-      expect(store.rawState).toEqual({ count: 1 })
+      screen.getByText('state.count=[1]')
     })
 
     it('slice', () => {
       store.state = { user: { count: 0 } }
-      const { result } = renderHook(() => useIbiza('user'))
+      function App() {
+        const user = useIbiza('user')
+        return <h1>user.count=[{user.count}]</h1>
+      }
 
-      hookAct(() => {
-        ++result.current.count
+      render(<App />)
+
+      act(() => {
+        ++store.state.user.count
       })
 
-      expect(store.rawState).toEqual({ user: { count: 1 } })
+      screen.getByText('user.count=[1]')
     })
   })
 
@@ -432,7 +450,7 @@ describe('mutating', () => {
       store.state = { count: 0, nested: {} }
       const { result } = renderHook(() => useIbiza())
 
-      hookAct(() => {
+      act(() => {
         result.current.nested.count = 1
       })
 
@@ -443,7 +461,7 @@ describe('mutating', () => {
       store.state = { user: { count: 0, nested: {} } }
       const { result } = renderHook(() => useIbiza('user'))
 
-      hookAct(() => {
+      act(() => {
         result.current.nested.count = 1
       })
 
@@ -458,7 +476,7 @@ describe('mutating', () => {
       store.state = { name: 'Joel', age: 43 }
       const { result } = renderHook(() => useIbiza())
 
-      hookAct(() => {
+      act(() => {
         result.current.name = null
         result.current.age = undefined
       })
@@ -470,7 +488,7 @@ describe('mutating', () => {
       store.state = { user: { name: 'Joel', age: 43 } }
       const { result } = renderHook(() => useIbiza('user'))
 
-      hookAct(() => {
+      act(() => {
         result.current.name = null
         result.current.age = undefined
       })
@@ -802,7 +820,8 @@ describe('mutating', () => {
     })
 
     describe('unmounted component', () => {
-      test('basic', async () => {
+      it('basic', async () => {
+        // store.debug = true
         store.state = { count: 0 }
 
         let renderCountApp = 0
@@ -817,6 +836,7 @@ describe('mutating', () => {
             </>
           )
         }
+        App.displayName = 'App'
 
         let renderCountChild1 = 0
         const Child1 = () => {
@@ -840,6 +860,7 @@ describe('mutating', () => {
         fireEvent.click(screen.getByRole('button'))
 
         await screen.findByText('Child1.count is [1]')
+        expect(screen.queryByText('Child2.count')).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button'))
 
@@ -962,11 +983,9 @@ describe('mutating', () => {
     function Counter() {
       const state = useIbiza()
       useEffect(() => {
-        ReactDOM.unstable_batchedUpdates(() => {
-          state.count = 1
-          state.count = 2
-        })
-      }, [state])
+        state.count = 1
+        state.count = 2
+      }, [])
       return <div>count: {state.count}</div>
     }
 
@@ -1666,18 +1685,14 @@ test.skip('async getter', async () => {
     return <h1>Name is {state.user.name}</h1>
   }
 
-  const App = () => {
-    return (
-      <Suspense fallback={<div>fallback</div>}>
-        <User />
-      </Suspense>
-    )
-  }
+  render(
+    <Suspense fallback={<div>fallback</div>}>
+      <User />
+    </Suspense>
+  )
 
-  const { container } = render(<App />)
-  expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-  await act(() => new Promise(res => setTimeout(res, 150)))
-  expect(container.textContent).toMatchInlineSnapshot('"Name is Joel Moss"')
+  screen.getByText('fallback')
+  await screen.findByText('Name is Joel Moss')
   expect(fetchSpy).toBeCalledTimes(1)
 })
 
@@ -1773,19 +1788,15 @@ describe('slicing', () => {
         const comment = useIbiza('/post.comment')
         return <h1>{comment.body}</h1>
       }
-      const App = () => {
-        return (
-          <Suspense fallback={<div>fallback</div>}>
-            <Comment />
-          </Suspense>
-        )
-      }
 
-      const { container } = render(<App />)
+      render(
+        <Suspense fallback={<div>fallback</div>}>
+          <Comment />
+        </Suspense>
+      )
 
-      expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-      await act(() => new Promise(res => setTimeout(res, 150)))
-      expect(container.textContent).toMatchInlineSnapshot('"comment#1"')
+      screen.getByText('fallback')
+      await screen.findByText('comment#1')
 
       act(() => {
         store.state['/post'].comment.body = 'new comment'
@@ -2184,8 +2195,8 @@ describe('functions (actions)', () => {
 
     const { result } = renderHook(() => useIbiza())
 
-    hookAct(() => void result.current.incrementBy(3))
-    hookAct(() => void result.current.setName())
+    act(() => void result.current.incrementBy(3))
+    act(() => void result.current.setName())
 
     expect(result.current.user.name).toBe('Joel Moss')
     expect(result.current.count).toBe(3)
@@ -2204,7 +2215,7 @@ describe('functions (actions)', () => {
       })
     )
 
-    hookAct(() => {
+    act(() => {
       result.current.increment()
     })
 
@@ -2326,20 +2337,71 @@ describe('URL backed state', () => {
       const user = useIbiza('/user')
       return <div>{user.name}</div>
     }
-    const App = () => {
+
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+      </Suspense>
+    )
+
+    screen.getByText('fallback')
+    await screen.findByText('Joel Moss')
+    expect(fetchSpy).toBeCalledTimes(1)
+  })
+
+  it('merges initial state', async () => {
+    function User({ age }) {
+      const user = useIbiza('/user', { age })
+      return (
+        <ul>
+          <li>user.name=[{user.name}]</li>
+          <li>user.age=[{user.age}]</li>
+        </ul>
+      )
+    }
+    const App = ({ age = 1 }) => {
       return (
         <Suspense fallback={<div>fallback</div>}>
-          <User />
+          <User age={age} />
         </Suspense>
       )
     }
 
-    const { container } = render(<App />)
+    render(<App />)
 
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
+    await screen.findByText('user.name=[Joel Moss]')
+    screen.getByText('user.age=[1]')
+  })
+
+  it('arguments are memoized and ignored on subsequent calls', async () => {
+    function User({ age }) {
+      const user = useIbiza('/user', { age })
+      return (
+        <ul>
+          <li>user.name=[{user.name}]</li>
+          <li>user.age=[{user.age}]</li>
+        </ul>
+      )
+    }
+    const App = ({ age = 1 }) => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User age={age} />
+        </Suspense>
+      )
+    }
+
+    const { rerender } = render(<App />)
+
     await act(() => new Promise(res => setTimeout(res, 150)))
-    expect(container.textContent).toMatchInlineSnapshot('"Joel Moss"')
-    expect(fetchSpy).toBeCalledTimes(1)
+
+    screen.getByText('user.name=[Joel Moss]')
+    screen.getByText('user.age=[1]')
+
+    rerender(<App age={2} />)
+
+    await screen.findByText('user.name=[Joel Moss]')
+    await screen.findByText('user.age=[1]')
   })
 
   it('URL with search params', async () => {
@@ -2369,27 +2431,25 @@ describe('URL backed state', () => {
   })
 
   it('throws on failed fetch', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {})
     const fetchSpy = jest.spyOn(store, 'fetchFn')
 
     function User() {
       const user = useIbiza('/user_with_404_on_get')
       return <div>{user.name}</div>
     }
-    const App = () => {
-      return (
-        <ErrorBoundary fallback={<div>error!</div>}>
-          <Suspense fallback={<div>fallback</div>}>
-            <User />
-          </Suspense>
-        </ErrorBoundary>
-      )
-    }
 
-    const { container } = render(<App />)
+    render(
+      <ErrorBoundary fallback={<div>error!</div>}>
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      </ErrorBoundary>
+    )
 
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-    await act(() => new Promise(res => setTimeout(res, 150)))
-    expect(container.textContent).toMatchInlineSnapshot('"error!"')
+    screen.getByText('fallback')
+    await screen.findByText('error!')
+    expect(console.error).toHaveBeenCalledTimes(3)
     expect(fetchSpy).toBeCalledTimes(1)
   })
 
@@ -2398,19 +2458,14 @@ describe('URL backed state', () => {
       const user = useIbiza('/user')
       return <div>/user.name=[{user.name}]</div>
     }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <User />
-        </Suspense>
-      )
-    }
 
-    render(<App />)
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+      </Suspense>
+    )
 
-    await act(() => new Promise(res => setTimeout(res, 150)))
-
-    screen.getByText('/user.name=[Joel Moss]')
+    await screen.findByText('/user.name=[Joel Moss]')
 
     act(() => {
       store.state['/user'].name = 'Ash Moss'
@@ -2448,7 +2503,7 @@ describe('URL backed state', () => {
 
     const { container } = render(<App />)
 
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
+    screen.getByText('fallback')
     await act(() => new Promise(res => setTimeout(res, 150)))
     expect(container.textContent).toMatchInlineSnapshot('"Joel MossA comment by Joel Moss"')
     expect(fetchSpy).toBeCalledTimes(1)
@@ -2468,19 +2523,15 @@ describe('URL backed state', () => {
       })
       return <div>{state.comment.read()}</div>
     }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <Comment />
-        </Suspense>
-      )
-    }
 
-    const { container } = render(<App />)
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <Comment />
+      </Suspense>
+    )
 
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-    await act(() => new Promise(res => setTimeout(res, 150)))
-    expect(container.textContent).toMatchInlineSnapshot('"A comment by Joel Moss"')
+    screen.getByText('fallback')
+    await screen.findByText('A comment by Joel Moss')
     expect(fetchSpy).toBeCalledTimes(1)
   })
 
@@ -2531,13 +2582,10 @@ describe('URL backed state', () => {
       )
     }
 
-    const { rerender, container } = render(<App />)
+    const { rerender } = render(<App />)
 
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-
-    await act(() => new Promise(res => setTimeout(res, 150)))
-
-    expect(container.textContent).toMatchInlineSnapshot('"Joel Moss"')
+    screen.getByText('fallback')
+    await screen.findByText('Joel Moss')
     expect(fetchSpy).toBeCalledTimes(1)
 
     act(() => {
@@ -2685,19 +2733,15 @@ describe('URL backed state', () => {
       const state = useIbiza()
       return <div>{state.user.name}</div>
     }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <User />
-        </Suspense>
-      )
-    }
 
-    const { container } = render(<App />)
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+      </Suspense>
+    )
 
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-    await act(() => new Promise(res => setTimeout(res, 150)))
-    expect(container.textContent).toMatchInlineSnapshot('"Joel Moss"')
+    screen.getByText('fallback')
+    await screen.findByText('Joel Moss')
     expect(fetchSpy).toBeCalledTimes(1)
   })
 

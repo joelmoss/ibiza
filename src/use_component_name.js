@@ -1,8 +1,9 @@
 /* global process */
 
-import { useRef } from 'react'
+import { useRef, useId } from 'react'
 
 export default () => {
+  const id = useId()
   const ref = useRef()
   if (process.env.NODE_ENV !== 'production') {
     // eslint-disable-next-line unicorn/error-message
@@ -13,5 +14,5 @@ export default () => {
     ref.current = name?.trim().split(' ')[1]
   }
 
-  return ref
+  return `${ref.current}(${id})`
 }

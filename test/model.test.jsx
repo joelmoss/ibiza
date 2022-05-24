@@ -122,14 +122,6 @@ test('initial state function should be called once', async () => {
   const meFn = jest.fn(() => ({ me: 'Joel' }))
   const useMe = createModel('me', meFn)
 
-  const App = () => {
-    return (
-      <>
-        <Child1 />
-        <Child2 />
-      </>
-    )
-  }
   const Child1 = () => {
     const state = useMe()
     return <h2>Child1.me is [{state.me}]</h2>
@@ -139,7 +131,12 @@ test('initial state function should be called once', async () => {
     return <h2>Child2.me is [{state.me}]</h2>
   }
 
-  render(<App />)
+  render(
+    <>
+      <Child1 />
+      <Child2 />
+    </>
+  )
 
   expect(meFn).toBeCalledTimes(1)
   screen.getByText('Child1.me is [Joel]')
@@ -235,16 +232,13 @@ describe('URL backed state', () => {
       const user = useUser()
       return <div>User2=[{user.name}]</div>
     }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <User1 />
-          <User2 />
-        </Suspense>
-      )
-    }
 
-    const { container } = render(<App />)
+    const { container } = render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User1 />
+        <User2 />
+      </Suspense>
+    )
 
     expect(container.textContent).toMatchInlineSnapshot('"fallback"')
     await act(() => new Promise(res => setTimeout(res, 150)))
@@ -264,16 +258,13 @@ describe('URL backed state', () => {
       const user = useUser()
       return <div>User2=[{user.name}]</div>
     }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <User1 />
-          <User2 />
-        </Suspense>
-      )
-    }
 
-    const { container } = render(<App />)
+    const { container } = render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User1 />
+        <User2 />
+      </Suspense>
+    )
 
     expect(container.textContent).toMatchInlineSnapshot('"fallback"')
     await act(() => new Promise(res => setTimeout(res, 150)))
@@ -300,15 +291,12 @@ describe('URL backed state', () => {
         </div>
       )
     }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <User />
-        </Suspense>
-      )
-    }
 
-    render(<App />)
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+      </Suspense>
+    )
 
     screen.getByText('fallback')
 
@@ -401,20 +389,17 @@ describe('createContextModel', () => {
       const post = usePost({ title })
       return <h1>{post.title}</h1>
     }
-    const App = () => {
-      return (
-        <>
-          <IbizaProvider>
-            <Post title="Post#1" />
-          </IbizaProvider>
-          <IbizaProvider>
-            <Post title="Post#2" />
-          </IbizaProvider>
-        </>
-      )
-    }
 
-    render(<App />)
+    render(
+      <>
+        <IbizaProvider>
+          <Post title="Post#1" />
+        </IbizaProvider>
+        <IbizaProvider>
+          <Post title="Post#2" />
+        </IbizaProvider>
+      </>
+    )
 
     screen.getByText('Post#1')
     screen.getByText('Post#2')
@@ -430,15 +415,12 @@ describe('createContextModel', () => {
       const post = usePost({ title: 'Post#2' })
       return <h1>{post.title}</h1>
     }
-    const App = () => {
-      return (
-        <IbizaProvider>
-          <Post />
-        </IbizaProvider>
-      )
-    }
 
-    render(<App />)
+    render(
+      <IbizaProvider>
+        <Post />
+      </IbizaProvider>
+    )
 
     screen.getByText('Post#2')
   })

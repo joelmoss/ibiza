@@ -10,7 +10,7 @@ export default proxify
 //
 // The `store` maintains a global copy of the state. It can be read from at any time and anywhere,
 // but cannot be written to.
-function proxify(objOrPath, parentPath, onGet, proxyCache, debugRef) {
+function proxify(objOrPath, parentPath, onGet, proxyCache, options = { cache: true }) {
   let obj
   if (typeof objOrPath === 'string') {
     obj = get(store.state, objOrPath) || {}
@@ -19,7 +19,7 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, debugRef) {
     obj = objOrPath || store.state
   }
 
-  if (proxyCache.has(obj)) return proxyCache.get(obj)
+  if (options.cache && proxyCache.has(obj)) return proxyCache.get(obj)
   if (obj === null) return obj
   if (obj.isHookProxy) return obj
 
@@ -30,12 +30,12 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, debugRef) {
       if (prop === 'isHookProxy') return true
 
       // Return store state.
-      if (prop === '$root') return proxify(null, null, onGet, proxyCache, debugRef)
+      if (prop === '$root') return proxify(null, null, onGet, proxyCache)
 
       // Return model (top level ancestor).
       if (prop === '$model') {
         const [model] = buildPath(prop).split('.')
-        return proxify(model, null, onGet, proxyCache, debugRef)
+        return proxify(model, null, onGet, proxyCache)
       }
 
       if (Object.isFrozen(target)) return rawStateOf(Reflect.get(...arguments))
@@ -75,8 +75,8 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, debugRef) {
       // argument.
       if (typeof result === 'function' && hasOwnProperty) {
         return result.bind(
-          proxify(target, parentPath, onGet, proxyCache, debugRef),
-          proxify(null, null, onGet, proxyCache, debugRef)
+          proxify(target, parentPath, onGet, proxyCache),
+          proxify(null, null, onGet, proxyCache)
         )
       }
 
@@ -84,7 +84,7 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, debugRef) {
 
       // If result is an object, but not null, it must be a nested object, so proxify and return it.
       if (result !== null && typeof result === 'object' && !isDate(result)) {
-        return proxify(result, path, onGet, proxyCache, debugRef)
+        return proxify(result, path, onGet, proxyCache)
       }
 
       onGet(path, prop)
