@@ -1,9 +1,8 @@
 /* eslint-disable testing-library/no-node-access */
 /* eslint-disable react/prop-types */
 /* eslint-disable react/display-name */
-import { render, act, fireEvent, screen } from '@testing-library/react'
-import { renderHook, act as hookAct } from '@testing-library/react-hooks'
-import React, { Suspense, useCallback, useEffect, useState } from 'react'
+import { render, renderHook, act, fireEvent, screen } from '@testing-library/react'
+import React, { useSyncExternalStore, Suspense, useCallback, useEffect, useState } from 'react'
 import ReactDOM from 'react-dom'
 import { rest } from 'msw'
 import { setupServer } from 'msw/node'
@@ -349,7 +348,7 @@ describe('store.state == hook state', () => {
     store.state = { count: 0 }
     const { result } = renderHook(() => useIbiza())
 
-    hookAct(() => {
+    act(() => {
       ++result.current.count
     })
 
@@ -360,7 +359,7 @@ describe('store.state == hook state', () => {
     store.state = { user: { count: 0 } }
     const { result } = renderHook(() => useIbiza('user'))
 
-    hookAct(() => {
+    act(() => {
       ++result.current.count
     })
 
@@ -406,24 +405,36 @@ describe('mutating', () => {
   describe('single prop', () => {
     it('basic', () => {
       store.state = { count: 0 }
-      const { result } = renderHook(() => useIbiza())
+      function App() {
+        const state = useIbiza()
 
-      hookAct(() => {
-        ++result.current.count
+        return <h1>state.count=[{state.count}]</h1>
+      }
+
+      render(<App />)
+      screen.getByText('state.count=[0]')
+
+      act(() => {
+        ++store.state.count
       })
 
-      expect(store.rawState).toEqual({ count: 1 })
+      screen.getByText('state.count=[1]')
     })
 
     it('slice', () => {
       store.state = { user: { count: 0 } }
-      const { result } = renderHook(() => useIbiza('user'))
+      function App() {
+        const user = useIbiza('user')
+        return <h1>user.count=[{user.count}]</h1>
+      }
 
-      hookAct(() => {
-        ++result.current.count
+      render(<App />)
+
+      act(() => {
+        ++store.state.user.count
       })
 
-      expect(store.rawState).toEqual({ user: { count: 1 } })
+      screen.getByText('user.count=[1]')
     })
   })
 
@@ -432,7 +443,7 @@ describe('mutating', () => {
       store.state = { count: 0, nested: {} }
       const { result } = renderHook(() => useIbiza())
 
-      hookAct(() => {
+      act(() => {
         result.current.nested.count = 1
       })
 
@@ -443,7 +454,7 @@ describe('mutating', () => {
       store.state = { user: { count: 0, nested: {} } }
       const { result } = renderHook(() => useIbiza('user'))
 
-      hookAct(() => {
+      act(() => {
         result.current.nested.count = 1
       })
 
@@ -458,7 +469,7 @@ describe('mutating', () => {
       store.state = { name: 'Joel', age: 43 }
       const { result } = renderHook(() => useIbiza())
 
-      hookAct(() => {
+      act(() => {
         result.current.name = null
         result.current.age = undefined
       })
@@ -470,7 +481,7 @@ describe('mutating', () => {
       store.state = { user: { name: 'Joel', age: 43 } }
       const { result } = renderHook(() => useIbiza('user'))
 
-      hookAct(() => {
+      act(() => {
         result.current.name = null
         result.current.age = undefined
       })
@@ -802,7 +813,8 @@ describe('mutating', () => {
     })
 
     describe('unmounted component', () => {
-      test('basic', async () => {
+      it('basic', async () => {
+        // store.debug = true
         store.state = { count: 0 }
 
         let renderCountApp = 0
@@ -817,6 +829,7 @@ describe('mutating', () => {
             </>
           )
         }
+        App.displayName = 'App'
 
         let renderCountChild1 = 0
         const Child1 = () => {
@@ -840,6 +853,7 @@ describe('mutating', () => {
         fireEvent.click(screen.getByRole('button'))
 
         await screen.findByText('Child1.count is [1]')
+        expect(screen.queryByText('Child2.count')).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button'))
 
@@ -2184,8 +2198,8 @@ describe('functions (actions)', () => {
 
     const { result } = renderHook(() => useIbiza())
 
-    hookAct(() => void result.current.incrementBy(3))
-    hookAct(() => void result.current.setName())
+    act(() => void result.current.incrementBy(3))
+    act(() => void result.current.setName())
 
     expect(result.current.user.name).toBe('Joel Moss')
     expect(result.current.count).toBe(3)
@@ -2204,7 +2218,7 @@ describe('functions (actions)', () => {
       })
     )
 
-    hookAct(() => {
+    act(() => {
       result.current.increment()
     })
 

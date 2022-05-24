@@ -1,4 +1,4 @@
-import { useCallback, useReducer, useRef, useEffect, useMemo } from 'react'
+import { useSyncExternalStore, useCallback, useRef, useMemo } from 'react'
 import memoize from 'micro-memoize'
 import { deepEqual } from 'fast-equals'
 
@@ -17,54 +17,53 @@ import store from './store.js'
 //    function, then that function will be called with the state, and the return value merged into
 //    the store.
 function useIbiza(initialStateOrSlice, initialState) {
-  const cnameRef = useComponentName()
-  const [, forceRender] = useReducer(s => s + 1, 0)
+  const id = useComponentName()
   const usedPathsRef = useRef([])
   const proxyCacheRef = useRef(new WeakMap())
   const initialStateOrSliceRef = useRef(initialStateOrSlice)
   const slicePathRef = useRef()
+  const rerenderRef = useRef(null)
+  const hasChangedRef = useRef(false)
 
   // Force a rerender when a used state property has been changed.
-  const onSet = useCallback(({ path, previousValue, value }) => {
-    const used = hasUsedPath(path, usedPathsRef.current)
+  const onSet = useCallback(
+    callback =>
+      ({ path, previousValue, value }) => {
+        const used = hasUsedPath(path, usedPathsRef.current)
 
-    if (used) {
-      // If the path is a parent of a used path, do an additional equality check on the used
-      // children. This helps ensure that we only rerender when the used paths are actually
-      // changed.
-      if (used === 'parent') {
-        const childPath = hasChangedChildren(path, usedPathsRef.current, value, previousValue)
-        if (childPath) {
-          if (store.debug) {
-            console.debug(
-              '[ibiza] <%s> rerendering on child %o of %o',
-              cnameRef.current,
-              childPath,
-              path
-            )
+        if (used) {
+          // If the path is a parent of a used path, do an additional equality check on the used
+          // children. This helps ensure that we only rerender when the used paths are actually
+          // changed.
+          if (used === 'parent') {
+            const childPath = hasChangedChildren(path, usedPathsRef.current, value, previousValue)
+            if (childPath) {
+              store.debug &&
+                console.debug('[ibiza] <%s> rerendering on child %o of %o', id, childPath, path)
+              // rerenderRef.current()
+              callback()
+            }
+          } else {
+            store.debug && console.debug('[ibiza] <%s> rerendering on %o (%s)', id, path, used)
+            // rerenderRef.current()
+            callback()
           }
-
-          forceRender()
         }
-      } else {
-        store.debug &&
-          console.debug('[ibiza] <%s> rerendering on %o (%s)', cnameRef.current, path, used)
-
-        forceRender()
-      }
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+      },
+    []
+  ) // eslint-disable-line react-hooks/exhaustive-deps
 
   const onGet = useCallback(
     path => {
       if (usedPathsRef.current.includes(path)) return
 
-      store.debug && console.debug('[ibiza] <%s> tracking %o', cnameRef.current, path)
+      store.debug && console.debug('[ibiza] <%s> tracking %o', id, path)
 
       usedPathsRef.current.push(path)
-      store.listenForChanges(onSet)
+      // console.log('listenForChanges()', id)
+      // store.listenForChanges(onSet)
     },
-    [cnameRef, onSet]
+    [id, onSet]
   )
 
   if (typeof initialStateOrSliceRef.current !== undefined) {
@@ -97,11 +96,6 @@ function useIbiza(initialStateOrSlice, initialState) {
     }
   }
 
-  // Delete set listener on component unmount.
-  useEffect(() => {
-    return () => store.unlistenForChanges(onSet)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   const [pathForProxy, directPropForProxy] = useMemo(() => {
     let path = null
     let directProp = null
@@ -129,8 +123,48 @@ function useIbiza(initialStateOrSlice, initialState) {
     return [path, directProp]
   }, [])
 
-  const proxy = proxify(pathForProxy || null, null, onGet, proxyCacheRef.current, cnameRef)
-  return directPropForProxy ? proxy[directPropForProxy] : proxy
+  const stateRef = useRef()
+
+  return useSyncExternalStore(
+    useCallback(handleStoreChange => {
+      console.log('---subscribe')
+
+      console.log('listenForChanges()', id)
+      return store.listenForChanges(
+        onSet(() => {
+          hasChangedRef.current = true
+          handleStoreChange()
+          hasChangedRef.current = false
+        })
+      )
+
+      rerenderRef.current = () => {
+        hasChangedRef.current = true
+        handleStoreChange()
+        hasChangedRef.current = false
+      }
+
+      return () => {
+        rerenderRef.current = null
+        console.log('unlistenForChanges()', id)
+        store.unlistenForChanges(onSet)
+      }
+    }, []),
+    () => {
+      // console.log('---getSnapshot')
+
+      if (!stateRef.current || hasChangedRef.current) {
+        console.log('>>>>>>>>>>>')
+        const proxy = proxify(pathForProxy || null, null, onGet, proxyCacheRef.current, {
+          cache: false
+        })
+        const state = directPropForProxy ? proxy[directPropForProxy] : proxy
+        stateRef.current = state
+      }
+
+      return stateRef.current
+    }
+  )
 }
 
 export default useIbiza
