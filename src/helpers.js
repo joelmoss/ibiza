@@ -73,18 +73,8 @@ export function accessor(options = {}) {
   Object.defineProperty(definition, isAccessor, { value: true })
 
   return definition
-
-  const def = {}
-
-  function get() {
-    return options.onGet ? options.onGet.call(this, _value) : _value
-  }
-
-  Object.defineProperty(def, isAccessor, { value: true })
-  Object.defineProperty(def, accessorOptions, { value: options })
-
-  return def
 }
+
 export function query(fn) {
   const def = {}
 

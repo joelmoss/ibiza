@@ -263,7 +263,6 @@ class IbizaStore {
 
         if (result?.[isQuery]) {
           const url = result[queryFn].call(receiver)
-          // console.log(1, { prop, url, shouldFetch: shouldFetch(url), result })
 
           throwOnFetchError(url)
           if (shouldFetch(url)) {
@@ -316,6 +315,11 @@ class IbizaStore {
         }
 
         let previousValue = Reflect.get(target, prop, receiver)
+
+        if (previousValue?.[isAccessor]) {
+          previousValue = previousValue(target, prop, receiver)
+        }
+
         const result = Reflect.set(target, prop, value, receiver)
         if (result) {
           previousValue = rawStateOf(previousValue)

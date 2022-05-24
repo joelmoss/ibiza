@@ -2962,6 +2962,32 @@ describe('accessor()', () => {
     screen.getByText('user=[Ashley]')
     expect(onSetSpy).toBeCalledTimes(1)
   })
+
+  it('should set value even if not previously read', async () => {
+    const accessorOptions = {
+      initialValue: 'Joel',
+      onSet(oldV, newV, setValue) {
+        setValue(`${newV}ley`)
+      }
+    }
+    store.state = { user: accessor(accessorOptions) }
+
+    const onSetSpy = jest.spyOn(accessorOptions, 'onSet')
+
+    function App() {
+      const model = useIbiza()
+      return <div>Hello</div>
+    }
+
+    render(<App />)
+
+    expect(onSetSpy).toBeCalledTimes(0)
+
+    act(() => void (store.state.user = 'Ash'))
+
+    expect(store.state.user).toEqual('Ashley')
+    expect(onSetSpy).toBeCalledTimes(1)
+  })
 })
 
 describe('query()', () => {
