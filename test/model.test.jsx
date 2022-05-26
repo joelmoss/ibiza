@@ -3,7 +3,7 @@ import { renderHook, act as hookAct } from '@testing-library/react-hooks'
 import React, { Suspense } from 'react'
 import { rest } from 'msw'
 import { setupServer } from 'msw/node'
-import { store, freeze, createModel } from 'ibiza'
+import { store, freeze, createModel, createContextModel, IbizaProvider } from 'ibiza'
 
 const server = setupServer(
   rest.get('/post', async (req, res, ctx) => {
@@ -25,7 +25,7 @@ afterEach(() => {
 afterAll(() => server.close())
 
 it('merges initial state', () => {
-  const usePost = createModel('post', (state, props) => ({
+  const usePost = createModel('post', (_, props) => ({
     title: 'Post#1',
     ...props
   }))
@@ -354,5 +354,59 @@ describe('freezing', () => {
     })
 
     expect(result.current.user.deep.name.firstName).toBe('Joel')
+  })
+})
+
+describe('createContextModel', () => {
+  it('multiple instances', () => {
+    const usePost = createContextModel((_, props) => ({
+      title: 'Post#?',
+      ...props
+    }))
+
+    const Post = ({ title }) => {
+      const post = usePost({ title })
+      return <h1>{post.title}</h1>
+    }
+    const App = () => {
+      return (
+        <>
+          <IbizaProvider>
+            <Post title="Post#1" />
+          </IbizaProvider>
+          <IbizaProvider>
+            <Post title="Post#2" />
+          </IbizaProvider>
+        </>
+      )
+    }
+
+    render(<App />)
+
+    screen.getByText('Post#1')
+    screen.getByText('Post#2')
+  })
+
+  test('basic', () => {
+    const usePost = createContextModel((_, props) => ({
+      title: 'Post#1',
+      ...props
+    }))
+
+    const Post = () => {
+      const post = usePost({ title: 'Post#2' })
+      return <h1>{post.title}</h1>
+    }
+    const App = () => {
+      return (
+        <IbizaProvider>
+          <Post />
+        </IbizaProvider>
+      )
+    }
+
+    render(<App />)
+
+    screen.getByText('Post#2')
   })
 })

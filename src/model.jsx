@@ -1,7 +1,38 @@
-import { useDebugValue } from 'react'
+import * as React from 'react'
+import { useContext, useState, createContext, useDebugValue } from 'react'
 
 import useIbiza from './use_ibiza.js'
 import store from './store.js'
+
+const IbizaContext = createContext()
+
+export const IbizaProvider = ({ children, ...props }) => {
+  const [modelName] = useState(uuid)
+
+  return <IbizaContext.Provider value={modelName}>{children}</IbizaContext.Provider>
+}
+
+export function createContextModel(modelDef = {}, options = {}) {
+  const nameContext = IbizaContext
+
+  function useIbizaModel(slice, props) {
+    const modelName = useContext(nameContext)
+
+    useDebugValue(`[Ibiza]${modelName}`)
+
+    if (typeof slice !== 'string') {
+      props = slice
+      slice = undefined
+    }
+
+    initState(modelName, modelDef, props)
+    store.modelOptions[modelName] = options
+
+    return useIbiza(slice ? [modelName, slice].join('.') : modelName)
+  }
+
+  return useIbizaModel
+}
 
 // Creates an Ibiza model, and returns a React hook wrapping useIbiza with the given `modelName` as
 // the slice. The given `modelDef` is assigned as the initial state to the `modelName` state key. If
@@ -26,29 +57,36 @@ import store from './store.js'
 //
 export function createModel(modelName, modelDef = {}, options = {}) {
   function useIbizaModel(slice, props) {
-    useDebugValue(modelName)
+    useDebugValue(`[Ibiza]${modelName}`)
 
     if (typeof slice !== 'string') {
       props = slice
       slice = undefined
     }
 
-    if (modelName in store.state === false) {
-      if (typeof modelDef === 'function') {
-        const initialState = (store.modelInitializers[modelName] = state => modelDef(state, props))
-
-        if (modelName.indexOf('/') !== 0) {
-          store.state[modelName] = initialState(store.state[modelName])
-        }
-      } else {
-        store.state[modelName] = modelDef
-      }
-    }
-
+    initState(modelName, modelDef, props)
     store.modelOptions[modelName] = options
 
     return useIbiza(slice ? [modelName, slice].join('.') : modelName)
   }
 
   return useIbizaModel
+}
+
+function initState(modelName, modelDef, props) {
+  if (modelName in store.state === false) {
+    if (typeof modelDef === 'function') {
+      const initialState = (store.modelInitializers[modelName] = state => modelDef(state, props))
+
+      if (modelName.indexOf('/') !== 0) {
+        store.state[modelName] = initialState(store.state[modelName])
+      }
+    } else {
+      store.state[modelName] = modelDef
+    }
+  }
+}
+
+function uuid() {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 }
