@@ -408,3 +408,69 @@ function for the model:
 ```javascript
 export default createModel('/user', {}, { fetcher: myFetchFunction })
 ```
+
+## `createContextModel()`
+
+Wrap your component in the `IbizaProvider` higher order component, and instead of `createModel()`,
+create your model with `createContextModel()` function. The model will automatically be given a
+unique name specific to the wrapped components in IbizaProvider. Just pass the model definition as
+the first argument. It accepts the same options as `createModel()` for the second argument.
+
+```jsx
+const useModel = createContextModel(() => ({
+  // Your model definition...
+  name: 'Awesome!'
+}))
+
+const App = () => {
+  return (
+    <IbizaProvider>
+      <MyComponent />
+    </IbizaProvider>
+  );
+};
+
+const MyComponent = () => {
+  const model = useModel()
+
+  return <h1>My model is {model.name}</h1>
+};
+```
+
+Each instance of IbizaProvider will use its own state.
+
+```jsx
+const useFirstModel = createContextModel(() => ({
+  name: 'FIRST!'
+}))
+
+const useSecondModel = createContextModel(() => ({
+  name: 'SECOND!'
+}))
+
+const App = () => {
+  return (
+    <>
+      <IbizaProvider>
+        <MyFirstComponent />
+      </IbizaProvider>
+      <IbizaProvider>
+        <MySecondComponent />
+      </IbizaProvider>
+    </>
+  );
+};
+
+const MyFirstComponent = () => {
+  const model = useFirstModel();
+
+  return <h1>My model is {model.name}</h1>; // My model is FIRST!
+};
+
+const MySecondComponent = () => {
+  const model = useSecondModel()
+
+  return <h1>My model is {model.name}</h1> // My model is SECOND!
+};
+```
+
