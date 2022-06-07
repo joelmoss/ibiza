@@ -3074,6 +3074,39 @@ describe('query()', () => {
     expect(fetchSpy).toBeCalledTimes(2)
   })
 
+  it('does not fetch on returning non-string', async () => {
+    const fetchSpy = jest.spyOn(store, 'fetchFn')
+
+    store.state = {
+      id: null,
+      user: query(function () {
+        return this.id ? `/users/${this.id}` : false
+      })
+    }
+
+    function User() {
+      const { user } = useIbiza()
+      return <div>{user.name || 'not loaded'}</div>
+    }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      )
+    }
+
+    render(<App />)
+
+    // screen.getByText('fallback')
+    await screen.findByText('not loaded')
+
+    act(() => void (store.state.id = 1))
+
+    await screen.findByText('Joel Moss')
+    expect(fetchSpy).toBeCalledTimes(1)
+  })
+
   it('does not refetch on re-render', async () => {
     const fetchSpy = jest.spyOn(store, 'fetchFn')
 
