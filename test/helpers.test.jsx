@@ -514,3 +514,55 @@ describe('query()', () => {
     expect(store.state.user.isProxy).toBe(true)
   })
 })
+
+describe('query and accessor', () => {
+  // Not re-rendering after `parent` prop is mutated!
+  xit('should call query on changed accessor dependency', async () => {
+    const accessorOptions = {
+      initialValue: 1,
+      onGet(value) {
+        console.log('parent.onGet()', value)
+        // return value
+        return this.parents.find(x => x.id === value)
+      },
+      onSet(old, value, setValue) {
+        // console.log('parent.onSet()', value)
+        // setValue(this.parents.find(x => x.id === value))
+      }
+    }
+    const fetchSpy = jest.spyOn(store, 'fetchFn')
+
+    store.debug = true
+    store.state = {
+      parents: [{ id: 1 }, { id: 2 }],
+      parent: accessor(accessorOptions),
+      user: query(function () {
+        console.trace('query(user)', this.parent)
+        return `/users/${this.parent.id}`
+      })
+    }
+
+    function User() {
+      const model = useIbiza()
+      console.log('<User>')
+      return <div>{model.user.name}</div>
+    }
+    function App() {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      )
+    }
+
+    render(<App />)
+
+    screen.getByText('fallback')
+    await screen.findByText('Joel Moss')
+
+    act(() => void (store.state.parent = 2))
+
+    await screen.findByText('Joel2 Moss2')
+    expect(fetchSpy).toBeCalledTimes(2)
+  })
+})
