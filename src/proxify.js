@@ -1,5 +1,5 @@
 import { get, isDate } from './utils.js'
-import store, { rawStateOf } from './store.js'
+import store, { isAccessor, rawStateOf } from './store.js'
 
 export default proxify
 
@@ -38,13 +38,23 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, debugRef) {
         return proxify(model, null, onGet, proxyCache, debugRef)
       }
 
+      if (Object.isFrozen(target)) return rawStateOf(Reflect.get(...arguments))
+
       const hasOwnProperty = Object.prototype.hasOwnProperty.call(target, prop)
+
+      if (hasOwnProperty) {
+        const descriptor = Object.getOwnPropertyDescriptor(target, prop)
+        const isDataDesc = Object.prototype.hasOwnProperty.call(descriptor, 'value')
+        if (isDataDesc && descriptor.value?.[isAccessor]) {
+          onGet(buildPath(prop), prop)
+
+          return Reflect.get(...arguments)
+        }
+      }
+
       let result = Reflect.get(...arguments)
 
-      if (
-        Object.isFrozen(target) ||
-        (result !== null && typeof result === 'object' && Object.isFrozen(result))
-      ) {
+      if (result !== null && typeof result === 'object' && Object.isFrozen(result)) {
         return rawStateOf(result)
       }
 
@@ -77,13 +87,13 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, debugRef) {
         return proxify(result, path, onGet, proxyCache, debugRef)
       }
 
-      onGet(path, 'get')
+      onGet(path, prop)
 
       return result
     },
 
     ownKeys() {
-      onGet(buildPath(), 'ownKeys')
+      onGet(buildPath())
       return Reflect.ownKeys(...arguments)
     }
   })

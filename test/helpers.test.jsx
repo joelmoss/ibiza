@@ -259,6 +259,80 @@ describe('accessor()', () => {
     expect(store.state.user).toEqual('Ashley')
     expect(onSetSpy).toBeCalledTimes(1)
   })
+
+  it('should rerender when setter is called with new value', async () => {
+    const accessorOptions = {
+      initialValue: 1,
+      onGet(value) {
+        return this.users.find(x => x.id === value)
+      },
+      onSet() {}
+    }
+
+    store.state = {
+      user: accessor(accessorOptions),
+      users: [
+        { id: 1, name: 'Joel' },
+        { id: 2, name: 'Ash' }
+      ]
+    }
+
+    const onSetSpy = jest.spyOn(accessorOptions, 'onSet')
+    const onGetSpy = jest.spyOn(accessorOptions, 'onGet')
+
+    function App() {
+      const model = useIbiza()
+      return <div>user.name=[{model.user.name}]</div>
+    }
+
+    render(<App />)
+
+    expect(onSetSpy).toBeCalledTimes(0)
+    expect(onGetSpy).toBeCalledTimes(1)
+    screen.getByText('user.name=[Joel]')
+
+    act(() => void (store.state.user = 2))
+
+    expect(onSetSpy).toBeCalledTimes(1)
+    await screen.findByText('user.name=[Ash]')
+  })
+
+  it('should rerender when dependent prop changes', async () => {
+    const accessorOptions = {
+      initialValue: 1,
+      onGet(value) {
+        return this.users.find(x => x.id === value)
+      },
+      onSet() {}
+    }
+
+    store.state = {
+      user: accessor(accessorOptions),
+      users: [
+        { id: 1, name: 'Joel' },
+        { id: 2, name: 'Ash' }
+      ]
+    }
+
+    const onSetSpy = jest.spyOn(accessorOptions, 'onSet')
+    const onGetSpy = jest.spyOn(accessorOptions, 'onGet')
+
+    function App() {
+      const model = useIbiza()
+      return <div>user.name=[{model.user.name}]</div>
+    }
+
+    render(<App />)
+
+    expect(onSetSpy).toBeCalledTimes(0)
+    expect(onGetSpy).toBeCalledTimes(1)
+    screen.getByText('user.name=[Joel]')
+
+    act(() => void (store.state.users[0].name = 'Joely'))
+
+    expect(onSetSpy).toBeCalledTimes(0)
+    await screen.findByText('user.name=[Joely]')
+  })
 })
 
 describe('query()', () => {

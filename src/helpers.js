@@ -52,6 +52,7 @@ export function accessor(options = {}) {
     }
 
     Object.defineProperty(target, prop, {
+      // configurable: false, // need this?
       get() {
         return options.onGet ? options.onGet.call(this, _value) : _value
       },
