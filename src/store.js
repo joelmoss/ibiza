@@ -105,6 +105,8 @@ class IbizaStore {
     const { suspense, ...options } = opts
 
     const thenCallback = response => {
+      this.debug && console.debug('[Ibiza] Fetched %o', resource)
+
       this.fetches[resource].status = 'success'
 
       if (response === null) return response
@@ -117,11 +119,15 @@ class IbizaStore {
 
     // Regular fetch.
     if (!suspense) {
+      this.debug && console.debug('[Ibiza] Fetching %o...', resource)
+
       return fetchFn(resource, options).then(thenCallback)
     }
 
     // Suspenseful fetch.
     if (!this.fetches[resource]) {
+      this.debug && console.debug('[Ibiza] Fetching %o (suspense)...', resource)
+
       this.fetches[resource] = {
         status: 'start',
         fetch: fetchFn(resource, options)
@@ -253,7 +259,7 @@ class IbizaStore {
             Object.prototype.hasOwnProperty.call($this.fetches, key) &&
             $this.fetches[key].error
           ) {
-            throw $this.fetches[prop].error
+            throw $this.fetches[key].error
           }
         }
 
@@ -262,17 +268,22 @@ class IbizaStore {
         }
 
         if (result?.[isQuery]) {
-          const url = result[queryFn].call(receiver)
+          const qfn = result[queryFn]
+          const url = qfn.call(receiver)
 
           if (url) {
             throwOnFetchError(url)
+
             if (shouldFetch(url)) {
               const fetchResult = $this.fetch(url, { suspense: true })
 
               Object.defineProperty(fetchResult, isQuery, { value: true })
-              Object.defineProperty(fetchResult, queryFn, { value: result[queryFn] })
+              Object.defineProperty(fetchResult, queryFn, { value: qfn })
 
-              this.set(target, prop, fetchResult, receiver)
+              // console.log('>>>', { url, target, prop, fetchResult, receiver })
+
+              // $this.state[prop] = fetchResult
+              // this.set(target, prop, fetchResult, receiver)
               result = fetchResult
             } else if (Object.prototype.hasOwnProperty.call($this.fetches, url)) {
               result = $this.fetches[url].response

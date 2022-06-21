@@ -3,6 +3,7 @@ import { Suspense, useState } from 'react'
 import { rest } from 'msw'
 import { setupServer } from 'msw/node'
 import { useIbiza, store, query, accessor, createAccessor } from 'ibiza'
+import { ErrorBoundary } from 'react-error-boundary'
 
 const server = setupServer(
   rest.get('/users/1', async (req, res, ctx) => {
@@ -31,6 +32,10 @@ const server = setupServer(
         { id: 4, name: 'Joel4 Moss4' }
       ])
     )
+  }),
+
+  rest.get('/user_with_404_on_get', async (req, res, ctx) => {
+    return res(ctx.delay(100), ctx.status(404))
   })
 )
 
@@ -336,8 +341,67 @@ describe('accessor()', () => {
 })
 
 describe('query()', () => {
+  it('suspends on fetch', async () => {
+    const fetchSpy = jest.spyOn(store, 'fetchFn')
+
+    store.state = {
+      user: query(function () {
+        return '/users/1'
+      })
+    }
+
+    function User() {
+      const { user } = useIbiza()
+      return <div>{user.name}</div>
+    }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      )
+    }
+
+    const { container } = render(<App />)
+
+    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
+    await act(() => new Promise(res => setTimeout(res, 150)))
+    expect(container.textContent).toMatchInlineSnapshot('"Joel Moss"')
+    expect(fetchSpy).toBeCalledTimes(1)
+  })
+
+  it('throws on failed fetch', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {})
+    const fetchSpy = jest.spyOn(store, 'fetchFn')
+
+    store.state = {
+      user: query(function () {
+        return '/user_with_404_on_get'
+      })
+    }
+
+    function User() {
+      const { user } = useIbiza()
+      return <div>{user.name}</div>
+    }
+
+    render(
+      <ErrorBoundary fallback={<div>error!</div>}>
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      </ErrorBoundary>
+    )
+
+    screen.getByText('fallback')
+    await screen.findByText('error!')
+    expect(console.error).toHaveBeenCalledTimes(3)
+    expect(fetchSpy).toBeCalledTimes(1)
+  })
+
   it('caches', async () => {
     const fetchSpy = jest.spyOn(store, 'fetchFn')
+
     store.state = {
       page: 1,
       users: query(function () {
@@ -485,7 +549,7 @@ describe('query()', () => {
     expect(fetchSpy).toBeCalledTimes(1)
   })
 
-  test('is proxied', async () => {
+  it('is proxied', async () => {
     const fetchSpy = jest.spyOn(store, 'fetchFn')
 
     store.state = {
@@ -512,6 +576,126 @@ describe('query()', () => {
     screen.getByText('fallback')
     await screen.findByText('Joel Moss')
     expect(store.state.user.isProxy).toBe(true)
+  })
+
+  it('allows mutating', async () => {
+    store.state = {
+      user: query(function () {
+        return '/users/1'
+      })
+    }
+
+    function User() {
+      const { user } = useIbiza()
+      return <div>/user.name=[{user.name}]</div>
+    }
+
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+      </Suspense>
+    )
+
+    await screen.findByText('/user.name=[Joel Moss]')
+
+    act(() => {
+      store.state.user.name = 'Ash Moss'
+    })
+
+    await screen.findByText('/user.name=[Ash Moss]')
+  })
+
+  it('can access from outside before/while fetching', async () => {
+    const fetchSpy = jest.spyOn(store, 'fetchFn')
+
+    store.state = {
+      userId: 1,
+      user: query(function () {
+        return `/users/${this.userId}`
+      })
+    }
+
+    function User() {
+      const { user } = useIbiza()
+      return <h1>{user.name}</h1>
+    }
+    function Comment() {
+      const state = useIbiza({
+        comment: {
+          body: 'A comment',
+          read(state) {
+            return `${this.body} by ${state.user.name}`
+          }
+        }
+      })
+      return <h2>{state.comment.read()}</h2>
+    }
+
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+        <Comment />
+      </Suspense>
+    )
+
+    screen.getByText('fallback')
+    await screen.findByText('Joel Moss', { selector: 'h1' })
+    await screen.findByText('A comment by Joel Moss', { selector: 'h2' })
+    expect(fetchSpy).toBeCalledTimes(1)
+
+    act(() => {
+      store.state.userId = 2
+    })
+
+    await screen.findByText('Joel2 Moss2', { selector: 'h1' })
+    await screen.findByText('A comment by Joel2 Moss2', { selector: 'h2' })
+    expect(fetchSpy).toBeCalledTimes(2)
+
+    act(() => {
+      store.state.user.name = 'Bob Bones'
+    })
+
+    await screen.findByText('Bob Bones', { selector: 'h1' })
+    await screen.findByText('A comment by Bob Bones', { selector: 'h2' })
+    expect(fetchSpy).toBeCalledTimes(2)
+  })
+
+  it('will refetch if store.fetches entry does not exist', async () => {
+    const fetchSpy = jest.spyOn(store, 'fetchFn')
+
+    store.state = {
+      user: query(function () {
+        return '/users/1'
+      })
+    }
+
+    function User() {
+      const { user } = useIbiza()
+      return <>{user.name}</>
+    }
+    function App() {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      )
+    }
+
+    const { rerender } = render(<App />)
+
+    screen.getByText('fallback')
+    await screen.findByText('Joel Moss')
+    expect(fetchSpy).toBeCalledTimes(1)
+
+    act(() => {
+      delete store.fetches['/users/1']
+    })
+
+    rerender(<App />)
+
+    await screen.findByText('fallback')
+    await screen.findByText('Joel Moss')
+    expect(fetchSpy).toBeCalledTimes(2)
   })
 })
 

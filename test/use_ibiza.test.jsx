@@ -85,7 +85,7 @@ describe('initial state', () => {
     expect(store.rawState).toMatchSnapshot()
   })
 
-  it('merges', () => {
+  it('merges initial state from different components', () => {
     const App = () => {
       return (
         <>
@@ -119,7 +119,7 @@ describe('initial state', () => {
     expect(store.rawState).toMatchSnapshot()
   })
 
-  it('merges only once', async () => {
+  it('merges initial state only once', async () => {
     const App = props => {
       const state = useIbiza(props)
       return <h1>Count is [{state.count}]</h1>
@@ -269,7 +269,17 @@ describe('initial state', () => {
     expect(iStateFn).toHaveBeenCalledTimes(1)
   })
 
-  it('can pass slice, and function', () => {
+  it('can pass slice, and initial state object', () => {
+    store.state = { user: { name: 'Joel Moss' } }
+    const { result } = renderHook(() => useIbiza('user', { age: 45 }))
+
+    expect(rawStateOf(result.current)).toEqual({
+      name: 'Joel Moss',
+      age: 45
+    })
+  })
+
+  it('can pass slice, and initial state function', () => {
     store.state = { user: { name: 'Joel Moss' } }
     const iState = jest.fn(s => {
       const [firstName, lastName] = s.name.split(' ')
@@ -976,11 +986,9 @@ describe('mutating', () => {
     function Counter() {
       const state = useIbiza()
       useEffect(() => {
-        ReactDOM.unstable_batchedUpdates(() => {
-          state.count = 1
-          state.count = 2
-        })
-      }, [state])
+        state.count = 1
+        state.count = 2
+      }, [])
       return <div>count: {state.count}</div>
     }
 
@@ -2356,6 +2364,61 @@ describe('URL backed state', () => {
     expect(fetchSpy).toBeCalledTimes(1)
   })
 
+  it('merges initial state', async () => {
+    function User({ age }) {
+      const user = useIbiza('/user', { age })
+      return (
+        <ul>
+          <li>user.name=[{user.name}]</li>
+          <li>user.age=[{user.age}]</li>
+        </ul>
+      )
+    }
+    const App = ({ age = 1 }) => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User age={age} />
+        </Suspense>
+      )
+    }
+
+    render(<App />)
+
+    await screen.findByText('user.name=[Joel Moss]')
+    screen.getByText('user.age=[1]')
+  })
+
+  it('arguments are memoized and ignored on subsequent calls', async () => {
+    function User({ age }) {
+      const user = useIbiza('/user', { age })
+      return (
+        <ul>
+          <li>user.name=[{user.name}]</li>
+          <li>user.age=[{user.age}]</li>
+        </ul>
+      )
+    }
+    const App = ({ age = 1 }) => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User age={age} />
+        </Suspense>
+      )
+    }
+
+    const { container, rerender } = render(<App />)
+
+    await act(() => new Promise(res => setTimeout(res, 150)))
+
+    screen.getByText('user.name=[Joel Moss]')
+    screen.getByText('user.age=[1]')
+
+    rerender(<App age={2} />)
+
+    await screen.findByText('user.name=[Joel Moss]')
+    await screen.findByText('user.age=[1]')
+  })
+
   it('URL with search params', async () => {
     function User() {
       const user = useIbiza('/user?')
@@ -2383,27 +2446,25 @@ describe('URL backed state', () => {
   })
 
   it('throws on failed fetch', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {})
     const fetchSpy = jest.spyOn(store, 'fetchFn')
 
     function User() {
       const user = useIbiza('/user_with_404_on_get')
       return <div>{user.name}</div>
     }
-    const App = () => {
-      return (
-        <ErrorBoundary fallback={<div>error!</div>}>
-          <Suspense fallback={<div>fallback</div>}>
-            <User />
-          </Suspense>
-        </ErrorBoundary>
-      )
-    }
 
-    const { container } = render(<App />)
+    render(
+      <ErrorBoundary fallback={<div>error!</div>}>
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      </ErrorBoundary>
+    )
 
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-    await act(() => new Promise(res => setTimeout(res, 150)))
-    expect(container.textContent).toMatchInlineSnapshot('"error!"')
+    screen.getByText('fallback')
+    await screen.findByText('error!')
+    expect(console.error).toHaveBeenCalledTimes(3)
     expect(fetchSpy).toBeCalledTimes(1)
   })
 
@@ -2412,19 +2473,14 @@ describe('URL backed state', () => {
       const user = useIbiza('/user')
       return <div>/user.name=[{user.name}]</div>
     }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <User />
-        </Suspense>
-      )
-    }
 
-    render(<App />)
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+      </Suspense>
+    )
 
-    await act(() => new Promise(res => setTimeout(res, 150)))
-
-    screen.getByText('/user.name=[Joel Moss]')
+    await screen.findByText('/user.name=[Joel Moss]')
 
     act(() => {
       store.state['/user'].name = 'Ash Moss'
