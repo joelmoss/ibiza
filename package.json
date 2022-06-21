@@ -36,7 +36,60 @@
     "build": "microbundle --jsx React.createElement",
     "dev": "microbundle watch --jsx React.createElement",
     "prepublishOnly": "yarn clean && yarn build",
-    "size": "microbundle && size-limit"
+    "size": "microbundle && size-limit",
+    "lint": "eslint src test --ext .jsx --ext .js"
+  },
+  "eslintConfig": {
+    "extends": [
+      "eslint:recommended",
+      "plugin:react/recommended",
+      "plugin:react-hooks/recommended",
+      "plugin:prettier/recommended"
+    ],
+    "settings": {
+      "react": {
+        "version": "detect"
+      }
+    },
+    "env": {
+      "browser": true,
+      "node": false,
+      "es6": true
+    },
+    "parserOptions": {
+      "ecmaVersion": "latest",
+      "sourceType": "module",
+      "ecmaFeatures": {
+        "jsx": true
+      }
+    },
+    "rules": {
+      "react/prop-types": 0
+    },
+    "overrides": [
+      {
+        "files": [
+          "test/**"
+        ],
+        "extends": [
+          "plugin:jest/recommended",
+          "plugin:testing-library/react",
+          "plugin:jest/style"
+        ],
+        "rules": {
+          "jest/expect-expect": [
+            "warn",
+            {
+              "assertFunctionNames": [
+                "expect",
+                "screen.findByText",
+                "screen.getByText"
+              ]
+            }
+          ]
+        }
+      }
+    ]
   },
   "size-limit": [
     {
@@ -87,14 +140,22 @@
     "@testing-library/jest-dom": "^5.15.0",
     "@testing-library/react": "^13.0.0",
     "cross-fetch": "^3.1.4",
+    "eslint": "^8.18.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-jest": "^26.5.3",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-react": "^7.30.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-testing-library": "^5.5.1",
     "fetch-mock-jest": "^1.5.1",
     "ibiza": "link:./ibiza",
     "jest": "^28.1.0",
     "jest-environment-jsdom": "^28.1.0",
     "microbundle": "^0.15.0",
     "msw": "^0.42",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
+    "prettier": "^2.7.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-error-boundary": "^3.1.4",
     "rimraf": "^3.0.2",
     "size-limit": "^7.0.0"

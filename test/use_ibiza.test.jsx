@@ -1,13 +1,9 @@
-/* eslint-disable testing-library/no-node-access */
-/* eslint-disable react/prop-types */
-/* eslint-disable react/display-name */
 import { render, renderHook, act, fireEvent, screen } from '@testing-library/react'
-import React, { useSyncExternalStore, Suspense, useCallback, useEffect, useState } from 'react'
-import ReactDOM from 'react-dom'
+import React, { Fragment, Suspense, useCallback, useEffect, useState } from 'react'
 import { rest } from 'msw'
 import { setupServer } from 'msw/node'
 import { ErrorBoundary } from 'react-error-boundary'
-import { useIbiza, store, query, accessor, rawStateOf } from 'ibiza'
+import { useIbiza, store, rawStateOf } from 'ibiza'
 
 const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resolve(data), ms))
 
@@ -241,7 +237,7 @@ describe('initial state', () => {
       lastName: 'Moss'
     })
     expect(result.current.isProxy).toBe(true)
-    expect(iState).toBeCalledTimes(1)
+    expect(iState).toHaveBeenCalledTimes(1)
   })
 
   it('function called only once', async () => {
@@ -290,7 +286,7 @@ describe('initial state', () => {
       lastName: 'Moss'
     })
     expect(result.current.isProxy).toBe(true)
-    expect(iState).toBeCalledTimes(1)
+    expect(iState).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -943,7 +939,7 @@ describe('mutating', () => {
 
       fireEvent.click(screen.getByRole('button'))
 
-      expect(store.state.count2).toEqual(1)
+      expect(store.state.count2).toBe(1)
 
       await screen.findByText('Count1 is [0]')
       expect(renderCount).toBe(1)
@@ -970,7 +966,7 @@ describe('mutating', () => {
 
       fireEvent.click(screen.getByRole('button'))
 
-      expect(store.state.user.count2).toEqual(1)
+      expect(store.state.user.count2).toBe(1)
 
       await screen.findByText('Count1 is [0]')
       expect(renderCount).toBe(1)
@@ -985,6 +981,7 @@ describe('mutating', () => {
       useEffect(() => {
         state.count = 1
         state.count = 2
+        // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [])
       return <div>count: {state.count}</div>
     }
@@ -1243,16 +1240,16 @@ describe('arrays', () => {
 
     let renderCount = 0
     const App = () => {
-      const state = useIbiza()
+      const { children } = useIbiza()
       renderCount++
       return (
         <>
           <ul>
-            {state.children.map((child, i) => (
+            {children.map((child, i) => (
               <li key={i}>Child[{child.name.first}]</li>
             ))}
           </ul>
-          <button onClick={() => void (state.children[0].name.first = 'Elijah')}>Click</button>
+          <button onClick={() => void (children[0].name.first = 'Elijah')}>Click</button>
         </>
       )
     }
@@ -1454,12 +1451,14 @@ it('rerenders on changed child of used paths (dupe keys)', async () => {
   const Parent = () => {
     const state = useIbiza()
     const onClick = () => {
+      // eslint-disable-next-line testing-library/no-node-access
       state.children.children[3] = { text: 'child 3' }
     }
 
     return (
       <>
         <button onClick={onClick}>change state</button>
+        {/* eslint-disable-next-line testing-library/no-node-access */}
         {Object.keys(state.children.children).map(id => (
           <Child id={id} key={id} />
         ))}
@@ -1490,12 +1489,14 @@ it('rerenders on changed child of used paths', async () => {
   const Parent = () => {
     const state = useIbiza()
     const onClick = () => {
+      // eslint-disable-next-line testing-library/no-node-access
       state.children[3] = { text: 'child 3' }
     }
 
     return (
       <>
         <button onClick={onClick}>change state</button>
+        {/* eslint-disable-next-line testing-library/no-node-access */}
         {Object.keys(state.children).map(id => (
           <Child id={id} key={id} />
         ))}
@@ -1526,6 +1527,7 @@ it('rerenders on changed parent of used paths', async () => {
   const Parent = () => {
     const state = useIbiza()
     const onClick = () => {
+      // eslint-disable-next-line testing-library/no-node-access
       state.children = {
         1: { text: 'child 3' },
         2: { text: 'child 4' }
@@ -1535,6 +1537,7 @@ it('rerenders on changed parent of used paths', async () => {
     return (
       <>
         <button onClick={onClick}>change state</button>
+        {/* eslint-disable-next-line testing-library/no-node-access */}
         {Object.keys(state.children).map(id => (
           <Child id={id} key={id} />
         ))}
@@ -1693,7 +1696,7 @@ test.skip('async getter', async () => {
 
   screen.getByText('fallback')
   await screen.findByText('Name is Joel Moss')
-  expect(fetchSpy).toBeCalledTimes(1)
+  expect(fetchSpy).toHaveBeenCalledTimes(1)
 })
 
 describe('slicing', () => {
@@ -1863,7 +1866,7 @@ describe('slicing', () => {
       expect(result.current.isProxy).toBe(true)
     })
 
-    it('function', () => {
+    it('nested function', () => {
       const mockFn = jest.fn()
       store.state = { nested: { eatTheWorld: mockFn } }
       const App = () => {
@@ -1879,7 +1882,7 @@ describe('slicing', () => {
 
       fireEvent.click(screen.getByRole('button'))
 
-      expect(mockFn).toBeCalledTimes(1)
+      expect(mockFn).toHaveBeenCalledTimes(1)
     })
 
     it('getter', () => {
@@ -1901,37 +1904,37 @@ describe('slicing', () => {
 
       screen.getByText('Hello World')
 
-      expect(spy).toBeCalledTimes(1)
+      expect(spy).toHaveBeenCalledTimes(1)
     })
 
-    // it.skip('iterator', () => {
-    //   const model = {
-    //     nested: {
-    //       world: 'World',
-    //       *[Symbol.iterator]() {
-    //         for (let letter of this.nested.world) {
-    //           yield letter
-    //         }
-    //       }
-    //     }
-    //   }
-    //   store.merge(model)
-    //   const App = () => {
-    //     const state = useIbiza('nested')
-    //     return (
-    //       <>
-    //         Hello
-    //         {Array.from(state, (item, i) => (
-    //           <Fragment key={i}>{item}</Fragment>
-    //         ))}
-    //       </>
-    //     )
-    //   }
-    //   const { container } = render(<App />)
-    //   expect(container).toMatchSnapshot()
-    // })
+    it.skip('iterator', () => {
+      const model = {
+        nested: {
+          world: 'World',
+          *[Symbol.iterator]() {
+            for (let letter of this.nested.world) {
+              yield letter
+            }
+          }
+        }
+      }
+      store.merge(model)
+      const App = () => {
+        const state = useIbiza('nested')
+        return (
+          <>
+            Hello
+            {Array.from(state, (item, i) => (
+              <Fragment key={i}>{item}</Fragment>
+            ))}
+          </>
+        )
+      }
+      const { container } = render(<App />)
+      expect(container).toMatchSnapshot()
+    })
 
-    it('array', () => {
+    it('nested array', () => {
       store.state = {
         name: 'Joel',
         nested: { children: [{ name: 'Ash' }, { name: 'Elijah' }] }
@@ -2325,7 +2328,7 @@ describe('functions (actions)', () => {
     await screen.findByText('Hello2')
     expect(store.state.count).toBe(2)
 
-    expect(renderCount).toEqual(3)
+    expect(renderCount).toBe(3)
   })
 })
 
@@ -2346,7 +2349,7 @@ describe('URL backed state', () => {
 
     screen.getByText('fallback')
     await screen.findByText('Joel Moss')
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
   it('nested url prop', async () => {
@@ -2366,7 +2369,7 @@ describe('URL backed state', () => {
 
     screen.getByText('fallback')
     await screen.findByText('Joel Moss')
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
   it('merges initial state', async () => {
@@ -2470,7 +2473,7 @@ describe('URL backed state', () => {
     screen.getByText('fallback')
     await screen.findByText('error!')
     expect(console.error).toHaveBeenCalledTimes(3)
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
   it('rerenders on used and changed prop', async () => {
@@ -2526,7 +2529,7 @@ describe('URL backed state', () => {
     screen.getByText('fallback')
     await act(() => new Promise(res => setTimeout(res, 150)))
     expect(container.textContent).toMatchInlineSnapshot('"Joel MossA comment by Joel Moss"')
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
   it('can access from deep state', async () => {
@@ -2552,7 +2555,7 @@ describe('URL backed state', () => {
 
     screen.getByText('fallback')
     await screen.findByText('A comment by Joel Moss')
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
   it('fetches only once', async () => {
@@ -2584,7 +2587,7 @@ describe('URL backed state', () => {
     fireEvent.click(await screen.findByRole('button'))
 
     await screen.findByText('Count[1]')
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
   it('will refetch if store.fetches entry does not exist', async () => {
@@ -2606,7 +2609,7 @@ describe('URL backed state', () => {
 
     screen.getByText('fallback')
     await screen.findByText('Joel Moss')
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
 
     act(() => {
       delete store.fetches['/user']
@@ -2619,7 +2622,7 @@ describe('URL backed state', () => {
     await act(() => new Promise(res => setTimeout(res, 150)))
 
     await screen.findByText('Joel Moss')
-    expect(fetchSpy).toBeCalledTimes(2)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
   })
 
   test('.refetch', async () => {
@@ -2650,17 +2653,17 @@ describe('URL backed state', () => {
     await act(() => new Promise(res => setTimeout(res, 150)))
 
     screen.getByText('Joel Moss')
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
 
     fireEvent.click(screen.getByRole('button', { name: 'click' }))
 
     await screen.findByText('Ash Moss')
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
 
     fireEvent.click(screen.getByRole('button', { name: 'refetch' }))
 
     await screen.findByText('Joel Moss')
-    expect(fetchSpy).toBeCalledTimes(2)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
   })
 
   test('.__fetcher', async () => {
@@ -2762,7 +2765,7 @@ describe('URL backed state', () => {
 
     screen.getByText('fallback')
     await screen.findByText('Joel Moss')
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
   describe('.save', () => {
@@ -2832,9 +2835,6 @@ describe('URL backed state', () => {
       await screen.findByText('error=[Not Found]')
     })
   })
-
-  //   it.todo('can pass params')
-  //   // useIbiza(['/user', { foo: 'bar' }])
 })
 
 it.skip('full proxy', () => {

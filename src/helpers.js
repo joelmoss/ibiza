@@ -1,4 +1,4 @@
-import { isQuery, queryUrl, queryFn, accessorDef } from './store.js'
+import { isQuery, queryFn, accessorDef } from './store.js'
 
 // Create a accessor descriptor. This defines a getter and setter with a internally scoped value.
 //

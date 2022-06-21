@@ -6,7 +6,7 @@ import store from './store.js'
 
 const IbizaContext = createContext()
 
-export const IbizaProvider = ({ children, ...props }) => {
+export const IbizaProvider = ({ children }) => {
   const [modelName] = useState(uuid)
 
   return <IbizaContext.Provider value={modelName}>{children}</IbizaContext.Provider>

@@ -1,5 +1,5 @@
 import { render, act, screen, fireEvent } from '@testing-library/react'
-import { Suspense, useState } from 'react'
+import React, { Suspense, useState } from 'react'
 import { rest } from 'msw'
 import { setupServer } from 'msw/node'
 import { useIbiza, store, query, accessor } from 'ibiza'
@@ -91,7 +91,7 @@ describe('accessor()', () => {
       onGet(v) {
         return `${v}(${this.id})`
       },
-      onSet(oldV, newV) {}
+      onSet() {}
     }
     store.state = { id: 1, user: accessor(accessorOptions) }
 
@@ -106,14 +106,14 @@ describe('accessor()', () => {
     render(<App />)
 
     screen.getByText('user=[Joel(1)]')
-    expect(onGetSpy).toBeCalledTimes(1)
-    expect(onSetSpy).toBeCalledTimes(0)
+    expect(onGetSpy).toHaveBeenCalledTimes(1)
+    expect(onSetSpy).toHaveBeenCalledTimes(0)
 
     act(() => void (store.state.user = 'Ash'))
 
     screen.getByText('user=[Ash(1)]')
-    expect(onGetSpy).toBeCalledTimes(2)
-    expect(onSetSpy).toBeCalledTimes(1)
+    expect(onGetSpy).toHaveBeenCalledTimes(2)
+    expect(onSetSpy).toHaveBeenCalledTimes(1)
   })
 
   test('onSet with setValue()', async () => {
@@ -135,12 +135,12 @@ describe('accessor()', () => {
     render(<App />)
 
     screen.getByText('user=[Joel]')
-    expect(onSetSpy).toBeCalledTimes(0)
+    expect(onSetSpy).toHaveBeenCalledTimes(0)
 
     act(() => void (store.state.user = 'Ash'))
 
     screen.getByText('user=[Ashley]')
-    expect(onSetSpy).toBeCalledTimes(1)
+    expect(onSetSpy).toHaveBeenCalledTimes(1)
   })
 
   it('can access on store state', async () => {
@@ -156,21 +156,21 @@ describe('accessor()', () => {
     const onGetSpy = jest.spyOn(accessorOptions, 'onGet')
     const onSetSpy = jest.spyOn(accessorOptions, 'onSet')
 
-    expect(store.state.user).toEqual('Joel')
-    expect(onGetSpy).toBeCalledTimes(1)
-    expect(onSetSpy).toBeCalledTimes(0)
+    expect(store.state.user).toBe('Joel')
+    expect(onGetSpy).toHaveBeenCalledTimes(1)
+    expect(onSetSpy).toHaveBeenCalledTimes(0)
 
     act(() => void (store.state.user = 'Ashley'))
 
-    expect(store.state.user).toEqual('Ashley')
-    expect(onGetSpy).toBeCalledTimes(2)
-    expect(onSetSpy).toBeCalledTimes(1)
+    expect(store.state.user).toBe('Ashley')
+    expect(onGetSpy).toHaveBeenCalledTimes(2)
+    expect(onSetSpy).toHaveBeenCalledTimes(1)
 
     act(() => void (store.state.user = 'Elijah'))
 
-    expect(store.state.user).toEqual('Elijah')
-    expect(onGetSpy).toBeCalledTimes(3)
-    expect(onSetSpy).toBeCalledTimes(2)
+    expect(store.state.user).toBe('Elijah')
+    expect(onGetSpy).toHaveBeenCalledTimes(3)
+    expect(onSetSpy).toHaveBeenCalledTimes(2)
   })
 
   it('should set value even if not previously read', async () => {
@@ -185,18 +185,18 @@ describe('accessor()', () => {
     const onSetSpy = jest.spyOn(accessorOptions, 'onSet')
 
     function App() {
-      const model = useIbiza()
+      useIbiza()
       return <div>Hello</div>
     }
 
     render(<App />)
 
-    expect(onSetSpy).toBeCalledTimes(0)
+    expect(onSetSpy).toHaveBeenCalledTimes(0)
 
     act(() => void (store.state.user = 'Ash'))
 
-    expect(store.state.user).toEqual('Ashley')
-    expect(onSetSpy).toBeCalledTimes(1)
+    expect(store.state.user).toBe('Ashley')
+    expect(onSetSpy).toHaveBeenCalledTimes(1)
   })
 
   it('should rerender when setter is called with new value', async () => {
@@ -226,13 +226,13 @@ describe('accessor()', () => {
 
     render(<App />)
 
-    expect(onSetSpy).toBeCalledTimes(0)
-    expect(onGetSpy).toBeCalledTimes(1)
+    expect(onSetSpy).toHaveBeenCalledTimes(0)
+    expect(onGetSpy).toHaveBeenCalledTimes(1)
     screen.getByText('user.name=[Joel]')
 
     act(() => void (store.state.user = 2))
 
-    expect(onSetSpy).toBeCalledTimes(1)
+    expect(onSetSpy).toHaveBeenCalledTimes(1)
     await screen.findByText('user.name=[Ash]')
   })
 
@@ -263,13 +263,13 @@ describe('accessor()', () => {
 
     render(<App />)
 
-    expect(onSetSpy).toBeCalledTimes(0)
-    expect(onGetSpy).toBeCalledTimes(1)
+    expect(onSetSpy).toHaveBeenCalledTimes(0)
+    expect(onGetSpy).toHaveBeenCalledTimes(1)
     screen.getByText('user.name=[Joel]')
 
     act(() => void (store.state.users[0].name = 'Joely'))
 
-    expect(onSetSpy).toBeCalledTimes(0)
+    expect(onSetSpy).toHaveBeenCalledTimes(0)
     await screen.findByText('user.name=[Joely]')
   })
 })
@@ -297,7 +297,7 @@ describe('query()', () => {
 
     screen.getByText('fallback')
     await screen.findByText('Joel Moss')
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
   it('throws on failed fetch', async () => {
@@ -326,7 +326,7 @@ describe('query()', () => {
     screen.getByText('fallback')
     await screen.findByText('error!')
     expect(console.error).toHaveBeenCalledTimes(3)
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
   it('caches', async () => {
@@ -372,7 +372,7 @@ describe('query()', () => {
     await screen.findByText('1[Joel1 Moss1]')
     await screen.findByText('2[Joel2 Moss2]')
 
-    expect(fetchSpy).toBeCalledTimes(2)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
   })
 
   it('re-renders on changed dependencies', async () => {
@@ -402,7 +402,7 @@ describe('query()', () => {
     act(() => void (store.state.id = 2))
 
     await screen.findByText('Joel2 Moss2')
-    expect(fetchSpy).toBeCalledTimes(2)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
   })
 
   it('does not fetch on returning non-string', async () => {
@@ -432,7 +432,7 @@ describe('query()', () => {
     act(() => void (store.state.id = 1))
 
     await screen.findByText('Joel Moss')
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
   it('does not refetch on re-render', async () => {
@@ -450,7 +450,7 @@ describe('query()', () => {
       return <div>{user.name}</div>
     }
     const App = () => {
-      const [count, setCount] = useState(0)
+      const [, setCount] = useState(0)
       return (
         <Suspense fallback={<div>fallback</div>}>
           <User />
@@ -467,12 +467,10 @@ describe('query()', () => {
     fireEvent.click(screen.getByRole('button'))
 
     await screen.findByText('Joel Moss')
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
   it('is proxied', async () => {
-    const fetchSpy = jest.spyOn(store, 'fetchFn')
-
     store.state = {
       id: 1,
       user: query(function () {
@@ -559,7 +557,7 @@ describe('query()', () => {
     screen.getByText('fallback')
     await screen.findByText('Joel Moss', { selector: 'h1' })
     await screen.findByText('A comment by Joel Moss', { selector: 'h2' })
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
 
     act(() => {
       store.state.userId = 2
@@ -567,7 +565,7 @@ describe('query()', () => {
 
     await screen.findByText('Joel2 Moss2', { selector: 'h1' })
     await screen.findByText('A comment by Joel2 Moss2', { selector: 'h2' })
-    expect(fetchSpy).toBeCalledTimes(2)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
 
     act(() => {
       store.state.user.name = 'Bob Bones'
@@ -575,7 +573,7 @@ describe('query()', () => {
 
     await screen.findByText('Bob Bones', { selector: 'h1' })
     await screen.findByText('A comment by Bob Bones', { selector: 'h2' })
-    expect(fetchSpy).toBeCalledTimes(2)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
   })
 
   it('will refetch if store.fetches entry does not exist', async () => {
@@ -603,7 +601,7 @@ describe('query()', () => {
 
     screen.getByText('fallback')
     await screen.findByText('Joel Moss')
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
 
     act(() => {
       delete store.fetches['/users/1']
@@ -613,7 +611,7 @@ describe('query()', () => {
 
     await screen.findByText('fallback')
     await screen.findByText('Joel Moss')
-    expect(fetchSpy).toBeCalledTimes(2)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
   })
 })
 
@@ -652,6 +650,6 @@ describe('query and accessor', () => {
     act(() => void (store.state.parent = 2))
 
     await screen.findByText('Joel2 Moss2')
-    expect(fetchSpy).toBeCalledTimes(2)
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
   })
 })
