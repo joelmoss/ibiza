@@ -1,5 +1,5 @@
 import { get, isDate } from './utils.js'
-import store, { isAccessor, rawStateOf } from './store.js'
+import store, { accessorDef, rawStateOf } from './store.js'
 
 export default proxify
 
@@ -45,7 +45,7 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, options = { cache: tr
       if (hasOwnProperty) {
         const descriptor = Object.getOwnPropertyDescriptor(target, prop)
         const isDataDesc = Object.prototype.hasOwnProperty.call(descriptor, 'value')
-        if (isDataDesc && descriptor.value?.[isAccessor]) {
+        if (isDataDesc && descriptor.value?.[accessorDef]) {
           onGet(buildPath(prop), prop)
 
           return Reflect.get(...arguments)

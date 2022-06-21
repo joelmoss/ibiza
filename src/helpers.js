@@ -1,12 +1,7 @@
-import { isQuery, queryUrl, queryFn, isAccessor, accessorOptions } from './store.js'
+import { isQuery, queryUrl, queryFn, accessorDef } from './store.js'
 
-// DEPRECATED - use accessor() instead
+// Create a accessor descriptor. This defines a getter and setter with a internally scoped value.
 //
-// Create a accessor descriptor on the given `obj` at `prop`. This defines a getter and setter
-// with a internally scoped value.
-//
-// - obj (Object)
-// - prop (String)
 // - options (Object?)
 // - options.initialValue (any?) - An initial value to assign to the property. If undefined, the
 //   initialValue will be taken from property of the same name in the `obj` argument (if any).
@@ -15,65 +10,15 @@ import { isQuery, queryUrl, queryFn, isAccessor, accessorOptions } from './store
 // - options.onSet (function?) - A function to be called each time the property is "set". It will be
 //   called with the old and new property values. A function is passed as the third argument, which
 //   can be used to manually set the value, allowing you to perform some validation logic.
-export function createAccessor(obj, prop, options = {}) {
-  let _manuallySet = false
-  let _value = Object.prototype.hasOwnProperty.call(obj, prop) ? obj[prop] : options.initialValue
-
-  const setValue = value => {
-    _value = value
-    _manuallySet = true
-  }
-
-  Object.defineProperty(obj, prop, {
-    get() {
-      return options.onGet ? options.onGet.call(this, _value) : _value
-    },
-
-    set(newValue) {
-      options.onSet?.call(this, _value, newValue, setValue)
-
-      if (_manuallySet) {
-        _manuallySet = false
-      } else {
-        _value = newValue
-      }
-    }
-  })
-}
-
 export function accessor(options = {}) {
-  function definition(target, prop, receiver) {
-    let _manuallySet = false
-    let _value = options.initialValue
+  const def = {}
 
-    const setValue = value => {
-      _value = value
-      _manuallySet = true
-    }
+  options.value = options.initialValue
+  delete options.initialValue
 
-    Object.defineProperty(target, prop, {
-      // configurable: false, // need this?
-      get() {
-        return options.onGet ? options.onGet.call(this, _value) : _value
-      },
+  Object.defineProperty(def, accessorDef, { value: options })
 
-      set(newValue) {
-        options.onSet?.call(this, _value, newValue, setValue)
-
-        if (_manuallySet) {
-          _manuallySet = false
-        } else {
-          _value = newValue
-        }
-      }
-    })
-
-    return Reflect.get(target, prop, receiver)
-  }
-
-  Object.defineProperty(definition, isAccessor, { value: true })
-
-  return definition
+  return def
 }
 
 export function query(fn) {

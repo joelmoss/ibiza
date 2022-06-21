@@ -64,12 +64,6 @@
       "limit": "1 s"
     },
     {
-      "name": "createAccessor",
-      "path": "./src/index.js",
-      "import": "{ createAccessor }",
-      "limit": "1 s"
-    },
-    {
       "name": "freeze",
       "path": "./src/index.js",
       "import": "{ freeze }",
