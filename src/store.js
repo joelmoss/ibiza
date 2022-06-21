@@ -2,8 +2,7 @@
 
 import { get, isPlainObject, isDate } from './utils.js'
 
-export const isAccessor = Symbol('ibizaIsAccessor')
-export const accessorOptions = Symbol('ibizaAccessorOptions')
+export const accessorDef = Symbol('ibizaAccessorDefinition')
 export const isQuery = Symbol('ibizaIsQuery')
 export const queryUrl = Symbol('ibizaQueryUrl')
 export const queryFn = Symbol('ibizaQueryFunction')
@@ -16,6 +15,7 @@ class IbizaStore {
   modelOptions = {}
 
   #setListeners = new Set()
+  #accessors = new Map()
   #state = {}
   #proxyCache = new WeakMap()
   #mergedObjects = new WeakMap()
@@ -73,7 +73,7 @@ class IbizaStore {
     this.#proxyCache = new WeakMap()
     this.#customFetchFn = undefined
     this.#setListeners = new Set()
-
+    this.#accessors = new Map()
     this.fetches = {}
     this.modelInitializers = {}
     this.modelOptions = {}
@@ -251,6 +251,15 @@ class IbizaStore {
           return result
         }
 
+        if (result?.[accessorDef] && !$this.#accessors.has(path)) {
+          $this.#accessors.set(path, result[accessorDef])
+        }
+
+        if ($this.#accessors.has(path)) {
+          const def = $this.#accessors.get(path)
+          return def.onGet ? def.onGet.call(receiver, def.value) : def.value
+        }
+
         const shouldFetch = key =>
           !Object.prototype.hasOwnProperty.call($this.fetches, key) || $this.fetches[key].fetch
 
@@ -261,10 +270,6 @@ class IbizaStore {
           ) {
             throw $this.fetches[key].error
           }
-        }
-
-        if (result?.[isAccessor]) {
-          return result(target, prop, receiver)
         }
 
         if (result?.[isQuery]) {
@@ -279,8 +284,6 @@ class IbizaStore {
 
               Object.defineProperty(fetchResult, isQuery, { value: true })
               Object.defineProperty(fetchResult, queryFn, { value: qfn })
-
-              // console.log('>>>', { url, target, prop, fetchResult, receiver })
 
               // $this.state[prop] = fetchResult
               // this.set(target, prop, fetchResult, receiver)
@@ -327,19 +330,48 @@ class IbizaStore {
           throw new TypeError(`Cannot mutate '${prop}'. Object is frozen!`)
         }
 
-        let previousValue = Reflect.get(target, prop, receiver)
+        const path = buildPath(prop)
+        let previousValue
+        let result
 
-        if (previousValue?.[isAccessor]) {
-          previousValue = previousValue(target, prop, receiver)
+        if (!$this.#accessors.has(path)) {
+          previousValue = Reflect.get(target, prop, receiver)
+
+          // The prop could still be an accessor if it has not yet been "get". So make sure it is
+          // defined here.
+          if (previousValue?.[accessorDef]) {
+            $this.#accessors.set(path, previousValue[accessorDef])
+          } else {
+            result = Reflect.set(target, prop, value, receiver)
+          }
         }
 
-        const result = Reflect.set(target, prop, value, receiver)
+        if ($this.#accessors.has(path)) {
+          const def = $this.#accessors.get(path)
+
+          previousValue = def.value
+          let manuallySet = false
+
+          if (def.onSet) {
+            def.onSet.call(receiver, def.value, value, v => {
+              def.value = v
+              manuallySet = true
+            })
+          }
+
+          if (manuallySet) {
+            manuallySet = false
+          } else {
+            def.value = value
+          }
+
+          result = def.value
+        }
+
         if (result) {
           previousValue = rawStateOf(previousValue)
 
           if (prop === 'length' || !Object.is(previousValue, value)) {
-            const path = buildPath(prop)
-
             if (store.debug) {
               console.groupCollapsed('[ibiza] Mutated %o', path)
               console.info({ previousValue, value })

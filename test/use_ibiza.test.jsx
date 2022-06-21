@@ -7,7 +7,7 @@ import ReactDOM from 'react-dom'
 import { rest } from 'msw'
 import { setupServer } from 'msw/node'
 import { ErrorBoundary } from 'react-error-boundary'
-import { useIbiza, store, query, accessor, createAccessor, rawStateOf } from 'ibiza'
+import { useIbiza, store, query, accessor, rawStateOf } from 'ibiza'
 
 const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resolve(data), ms))
 
