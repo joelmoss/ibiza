@@ -2349,6 +2349,26 @@ describe('URL backed state', () => {
     expect(fetchSpy).toBeCalledTimes(1)
   })
 
+  it('nested url prop', async () => {
+    const fetchSpy = jest.spyOn(store, 'fetchFn')
+    store.state = { users: {} }
+
+    function User() {
+      const user = useIbiza('users./user')
+      return <div>{user.name}</div>
+    }
+
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+      </Suspense>
+    )
+
+    screen.getByText('fallback')
+    await screen.findByText('Joel Moss')
+    expect(fetchSpy).toBeCalledTimes(1)
+  })
+
   it('merges initial state', async () => {
     function User({ age }) {
       const user = useIbiza('/user', { age })

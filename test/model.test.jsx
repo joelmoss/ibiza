@@ -240,7 +240,7 @@ describe('URL backed state', () => {
       </Suspense>
     )
 
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
+    screen.getByText('fallback')
     await act(() => new Promise(res => setTimeout(res, 150)))
     expect(container.textContent).toMatchInlineSnapshot('"User1=[Joel Moss]User2=[Joel Moss]"')
     expect(fetchSpy).toBeCalledTimes(1)
