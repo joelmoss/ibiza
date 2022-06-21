@@ -304,7 +304,7 @@ class IbizaStore {
 
           if (shouldFetch(url)) {
             const urlResult = $this.fetch(url, { suspense: true })
-            $this.state[url] = urlResult
+            // $this.state[url] = urlResult
             result = get(urlResult, urlPath)
           }
         }

@@ -354,19 +354,15 @@ describe('query()', () => {
       const { user } = useIbiza()
       return <div>{user.name}</div>
     }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <User />
-        </Suspense>
-      )
-    }
 
-    const { container } = render(<App />)
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+      </Suspense>
+    )
 
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-    await act(() => new Promise(res => setTimeout(res, 150)))
-    expect(container.textContent).toMatchInlineSnapshot('"Joel Moss"')
+    screen.getByText('fallback')
+    await screen.findByText('Joel Moss')
     expect(fetchSpy).toBeCalledTimes(1)
   })
 
@@ -421,15 +417,12 @@ describe('query()', () => {
         </div>
       )
     }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <Users />
-        </Suspense>
-      )
-    }
 
-    render(<App />)
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <Users />
+      </Suspense>
+    )
 
     screen.getByText('fallback')
     await screen.findByText('1[Joel1 Moss1]')
@@ -462,15 +455,12 @@ describe('query()', () => {
       const { user } = useIbiza()
       return <div>{user.name}</div>
     }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <User />
-        </Suspense>
-      )
-    }
 
-    render(<App />)
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+      </Suspense>
+    )
 
     screen.getByText('fallback')
     await screen.findByText('Joel Moss')
@@ -495,15 +485,12 @@ describe('query()', () => {
       const { user } = useIbiza()
       return <div>{user.name || 'not loaded'}</div>
     }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <User />
-        </Suspense>
-      )
-    }
 
-    render(<App />)
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+      </Suspense>
+    )
 
     // screen.getByText('fallback')
     await screen.findByText('not loaded')
@@ -563,15 +550,12 @@ describe('query()', () => {
       const { user } = useIbiza()
       return <div>{user.name}</div>
     }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <User />
-        </Suspense>
-      )
-    }
 
-    render(<App />)
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+      </Suspense>
+    )
 
     screen.getByText('fallback')
     await screen.findByText('Joel Moss')

@@ -86,14 +86,6 @@ describe('initial state', () => {
   })
 
   it('merges initial state from different components', () => {
-    const App = () => {
-      return (
-        <>
-          <Child1 />
-          <Child2 />
-        </>
-      )
-    }
     const Child1 = () => {
       const state = useIbiza({
         count: 0,
@@ -114,7 +106,12 @@ describe('initial state', () => {
       return <h1>Count1 is [{state.count1}]</h1>
     }
 
-    render(<App />)
+    render(
+      <>
+        <Child1 />
+        <Child2 />
+      </>
+    )
 
     expect(store.rawState).toMatchSnapshot()
   })
@@ -1688,18 +1685,14 @@ test.skip('async getter', async () => {
     return <h1>Name is {state.user.name}</h1>
   }
 
-  const App = () => {
-    return (
-      <Suspense fallback={<div>fallback</div>}>
-        <User />
-      </Suspense>
-    )
-  }
+  render(
+    <Suspense fallback={<div>fallback</div>}>
+      <User />
+    </Suspense>
+  )
 
-  const { container } = render(<App />)
-  expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-  await act(() => new Promise(res => setTimeout(res, 150)))
-  expect(container.textContent).toMatchInlineSnapshot('"Name is Joel Moss"')
+  screen.getByText('fallback')
+  await screen.findByText('Name is Joel Moss')
   expect(fetchSpy).toBeCalledTimes(1)
 })
 
@@ -1795,19 +1788,15 @@ describe('slicing', () => {
         const comment = useIbiza('/post.comment')
         return <h1>{comment.body}</h1>
       }
-      const App = () => {
-        return (
-          <Suspense fallback={<div>fallback</div>}>
-            <Comment />
-          </Suspense>
-        )
-      }
 
-      const { container } = render(<App />)
+      render(
+        <Suspense fallback={<div>fallback</div>}>
+          <Comment />
+        </Suspense>
+      )
 
-      expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-      await act(() => new Promise(res => setTimeout(res, 150)))
-      expect(container.textContent).toMatchInlineSnapshot('"comment#1"')
+      screen.getByText('fallback')
+      await screen.findByText('comment#1')
 
       act(() => {
         store.state['/post'].comment.body = 'new comment'
@@ -2348,19 +2337,15 @@ describe('URL backed state', () => {
       const user = useIbiza('/user')
       return <div>{user.name}</div>
     }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <User />
-        </Suspense>
-      )
-    }
 
-    const { container } = render(<App />)
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+      </Suspense>
+    )
 
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-    await act(() => new Promise(res => setTimeout(res, 150)))
-    expect(container.textContent).toMatchInlineSnapshot('"Joel Moss"')
+    screen.getByText('fallback')
+    await screen.findByText('Joel Moss')
     expect(fetchSpy).toBeCalledTimes(1)
   })
 
@@ -2406,7 +2391,7 @@ describe('URL backed state', () => {
       )
     }
 
-    const { container, rerender } = render(<App />)
+    const { rerender } = render(<App />)
 
     await act(() => new Promise(res => setTimeout(res, 150)))
 
@@ -2518,7 +2503,7 @@ describe('URL backed state', () => {
 
     const { container } = render(<App />)
 
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
+    screen.getByText('fallback')
     await act(() => new Promise(res => setTimeout(res, 150)))
     expect(container.textContent).toMatchInlineSnapshot('"Joel MossA comment by Joel Moss"')
     expect(fetchSpy).toBeCalledTimes(1)
@@ -2538,19 +2523,15 @@ describe('URL backed state', () => {
       })
       return <div>{state.comment.read()}</div>
     }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <Comment />
-        </Suspense>
-      )
-    }
 
-    const { container } = render(<App />)
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <Comment />
+      </Suspense>
+    )
 
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-    await act(() => new Promise(res => setTimeout(res, 150)))
-    expect(container.textContent).toMatchInlineSnapshot('"A comment by Joel Moss"')
+    screen.getByText('fallback')
+    await screen.findByText('A comment by Joel Moss')
     expect(fetchSpy).toBeCalledTimes(1)
   })
 
@@ -2601,13 +2582,10 @@ describe('URL backed state', () => {
       )
     }
 
-    const { rerender, container } = render(<App />)
+    const { rerender } = render(<App />)
 
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-
-    await act(() => new Promise(res => setTimeout(res, 150)))
-
-    expect(container.textContent).toMatchInlineSnapshot('"Joel Moss"')
+    screen.getByText('fallback')
+    await screen.findByText('Joel Moss')
     expect(fetchSpy).toBeCalledTimes(1)
 
     act(() => {
@@ -2755,19 +2733,15 @@ describe('URL backed state', () => {
       const state = useIbiza()
       return <div>{state.user.name}</div>
     }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <User />
-        </Suspense>
-      )
-    }
 
-    const { container } = render(<App />)
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+      </Suspense>
+    )
 
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-    await act(() => new Promise(res => setTimeout(res, 150)))
-    expect(container.textContent).toMatchInlineSnapshot('"Joel Moss"')
+    screen.getByText('fallback')
+    await screen.findByText('Joel Moss')
     expect(fetchSpy).toBeCalledTimes(1)
   })
 
