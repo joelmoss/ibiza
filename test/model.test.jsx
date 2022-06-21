@@ -138,7 +138,7 @@ test('initial state function should be called once', async () => {
     </>
   )
 
-  expect(meFn).toBeCalledTimes(1)
+  expect(meFn).toHaveBeenCalledTimes(1)
   screen.getByText('Child1.me is [Joel]')
   screen.getByText('Child2.me is [Joel]')
 })
@@ -205,7 +205,7 @@ describe('re-renders on used state', () => {
 
     render(<App />)
 
-    expect(meFn).toBeCalledTimes(1)
+    expect(meFn).toHaveBeenCalledTimes(1)
     screen.getByText('Child1.count1 is []')
     screen.getByText('Child2.count2 is []')
 
@@ -243,7 +243,7 @@ describe('URL backed state', () => {
     screen.getByText('fallback')
     await act(() => new Promise(res => setTimeout(res, 150)))
     expect(container.textContent).toMatchInlineSnapshot('"User1=[Joel Moss]User2=[Joel Moss]"')
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
   it('accepts a custom fetch function option', async () => {
@@ -269,7 +269,7 @@ describe('URL backed state', () => {
     expect(container.textContent).toMatchInlineSnapshot('"fallback"')
     await act(() => new Promise(res => setTimeout(res, 150)))
     expect(container.textContent).toMatchInlineSnapshot('"User1=[Joel Moss]User2=[Joel Moss]"')
-    expect(customFetch).toBeCalledTimes(1)
+    expect(customFetch).toHaveBeenCalledTimes(1)
   })
 
   it('model definition accepts server response', async () => {
@@ -303,7 +303,7 @@ describe('URL backed state', () => {
     await act(() => new Promise(res => setTimeout(res, 150)))
 
     await screen.findByText('Joel Moss')
-    expect(fetchSpy).toBeCalledTimes(1)
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -370,7 +370,7 @@ describe('freezing', () => {
 
     act(() => {
       expect(() => {
-        result.current.user.deep.name.firstName = 'Ash'
+        store.state.user.deep.name.firstName = 'Ash'
       }).toThrow()
     })
 

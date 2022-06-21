@@ -13,8 +13,8 @@ test('subscribe to changes', () => {
 
   store.state.name = 'Ash'
 
-  expect(callback).toBeCalledTimes(1)
-  expect(callback).toBeCalledWith(
+  expect(callback).toHaveBeenCalledTimes(1)
+  expect(callback).toHaveBeenCalledWith(
     expect.objectContaining({
       prop: 'name',
       path: 'name',
@@ -31,8 +31,8 @@ test('subscribe to deep changes', () => {
 
   store.state.user.name = 'Ash'
 
-  expect(callback).toBeCalledTimes(1)
-  expect(callback).toBeCalledWith(
+  expect(callback).toHaveBeenCalledTimes(1)
+  expect(callback).toHaveBeenCalledWith(
     expect.objectContaining({
       prop: 'name',
       path: 'user.name',
@@ -52,7 +52,7 @@ test('unsubscribe from changes', () => {
   store.state.name = 'Joel'
 
   expect(store.rawState).toEqual({ name: 'Joel' })
-  expect(callback).toBeCalledTimes(1)
+  expect(callback).toHaveBeenCalledTimes(1)
 })
 
 test('.__raw returns raw state', () => {
@@ -70,7 +70,7 @@ describe('state mutation', () => {
     store.state = { name: 'Joel' }
 
     expect(store.rawState).toEqual({ name: 'Joel' })
-    expect(cb).not.toBeCalled()
+    expect(cb).not.toHaveBeenCalled()
   })
 
   it('overwrite existing property', () => {

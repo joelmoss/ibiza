@@ -1,4 +1,5 @@
-import { useSyncExternalStore, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useCallback, useRef, useMemo } from 'react'
+import { useSyncExternalStore } from 'use-sync-external-store/shim'
 import memoize from 'micro-memoize'
 import { deepEqual } from 'fast-equals'
 
@@ -47,7 +48,7 @@ function useIbiza(initialStateOrSlice, initialState) {
 
   // Handle any initial state and/or slice given to the hook, but do so only on first call -
   // essentially memoizing them.
-  if (typeof initialStateOrSliceRef.current !== undefined) {
+  if (typeof initialStateOrSliceRef.current !== 'undefined') {
     if (isPlainObject(initialStateOrSliceRef.current)) {
       // Hook argument is a plain object, so merge it into the existing store as initial state.
       store.merge(initialStateOrSliceRef.current)
@@ -107,31 +108,34 @@ function useIbiza(initialStateOrSlice, initialState) {
 
   let inRender = true
   const state = useSyncExternalStore(
-    useCallback(handleStoreChange => {
-      return store.listenForChanges(({ path, previousValue, value }) => {
-        hasChangedRef.current = false
-        const used = hasUsedPath(path, usedPathsRef.current)
+    useCallback(
+      handleStoreChange => {
+        return store.listenForChanges(({ path, previousValue, value }) => {
+          hasChangedRef.current = false
+          const used = hasUsedPath(path, usedPathsRef.current)
 
-        if (used) {
-          // If the path is a parent of a used path, do an additional equality check on the used
-          // children. This helps ensure that we only rerender when the used paths are actually
-          // changed.
-          if (used === 'parent') {
-            const childPath = hasChangedChildren(path, usedPathsRef.current, value, previousValue)
-            if (childPath) {
+          if (used) {
+            // If the path is a parent of a used path, do an additional equality check on the used
+            // children. This helps ensure that we only rerender when the used paths are actually
+            // changed.
+            if (used === 'parent') {
+              const childPath = hasChangedChildren(path, usedPathsRef.current, value, previousValue)
+              if (childPath) {
+                hasChangedRef.current = true
+                store.debug &&
+                  console.debug('[ibiza] <%s> rerendering on child %o of %o', id, childPath, path)
+              }
+            } else {
               hasChangedRef.current = true
-              store.debug &&
-                console.debug('[ibiza] <%s> rerendering on child %o of %o', id, childPath, path)
+              store.debug && console.debug('[ibiza] <%s> rerendering on %o (%s)', id, path, used)
             }
-          } else {
-            hasChangedRef.current = true
-            store.debug && console.debug('[ibiza] <%s> rerendering on %o (%s)', id, path, used)
           }
-        }
 
-        handleStoreChange()
-      })
-    }, []),
+          handleStoreChange()
+        })
+      },
+      [id]
+    ),
     // getSnapshot() - Returns a snapshot of the store state. If the state is unchanged, a cached
     // snapshot is returned.
     () => {

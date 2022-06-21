@@ -4,7 +4,6 @@ import { get, isPlainObject, isDate } from './utils.js'
 
 export const accessorDef = Symbol('ibizaAccessorDefinition')
 export const isQuery = Symbol('ibizaIsQuery')
-export const queryUrl = Symbol('ibizaQueryUrl')
 export const queryFn = Symbol('ibizaQueryFunction')
 
 class IbizaStore {
@@ -175,7 +174,6 @@ class IbizaStore {
       }
     }
 
-    // eslint-disable-next-line unicorn/no-this-assignment
     const $this = this
 
     const proxy = new Proxy(target, {
