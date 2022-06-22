@@ -1,6 +1,5 @@
 import { render, renderHook, act, fireEvent, screen } from '@testing-library/react'
 import React, { Fragment, Suspense, useCallback, useEffect, useState } from 'react'
-import ReactDOM from 'react-dom'
 import { rest } from 'msw'
 import { setupServer } from 'msw/node'
 import { ErrorBoundary } from 'react-error-boundary'
