@@ -1,5 +1,6 @@
 import { render, renderHook, act, fireEvent, screen } from '@testing-library/react'
 import React, { Fragment, Suspense, useCallback, useEffect, useState } from 'react'
+import ReactDOM from 'react-dom'
 import { rest } from 'msw'
 import { setupServer } from 'msw/node'
 import { ErrorBoundary } from 'react-error-boundary'
@@ -636,13 +637,14 @@ describe('mutating', () => {
       test('basic', async () => {
         let renderCount = 0
         store.state = { count: 0 }
+
         const App = () => {
           const state = useIbiza()
           renderCount++
           return (
             <>
               <h1>Count is [{state.count}]</h1>
-              <button onClick={() => (state.count = 1)} />
+              <button onClick={() => (state.count += 1)} />
             </>
           )
         }
@@ -656,6 +658,19 @@ describe('mutating', () => {
 
         await screen.findByText('Count is [1]')
         expect(renderCount).toBe(2)
+
+        fireEvent.click(screen.getByRole('button'))
+
+        await screen.findByText('Count is [2]')
+        expect(renderCount).toBe(3)
+
+        act(() => {
+          store.state.count = 4
+          store.state.count = 5
+        })
+
+        await screen.findByText('Count is [5]')
+        expect(renderCount).toBe(4)
       })
 
       test('slice', async () => {
@@ -976,11 +991,14 @@ describe('mutating', () => {
   it('can batch DOM updates', async () => {
     store.state = { count: 0 }
 
+    let renderCount = 0
     function Counter() {
       const state = useIbiza()
+      renderCount++
       useEffect(() => {
         state.count = 1
         state.count = 2
+        state.count = 3
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [])
       return <div>count: {state.count}</div>
@@ -988,7 +1006,17 @@ describe('mutating', () => {
 
     render(<Counter />)
 
-    await screen.findByText('count: 2')
+    expect(renderCount).toBe(2)
+    await screen.findByText('count: 3')
+
+    act(() => {
+      store.state.count = 11
+      store.state.count = 12
+      store.state.count = 13
+    })
+
+    expect(renderCount).toBe(3)
+    await screen.findByText('count: 13')
   })
 
   describe('does not rerender on unused nested state', () => {

@@ -27,8 +27,7 @@ function useIbiza(initialStateOrSlice, initialState) {
   const usedPathsRef = useRef([])
 
   const slicePathRef = useRef()
-  const stateRef = useRef()
-  const hasChangedRef = useRef(false)
+  const snapshotVersionRef = useRef(0)
 
   // Per-hook proxyCache.
   const proxyCache = useMemo(() => new WeakMap(), [])
@@ -106,12 +105,11 @@ function useIbiza(initialStateOrSlice, initialState) {
     return [path, directProp]
   }, [])
 
-  let inRender = true
-  const state = useSyncExternalStore(
+  useSyncExternalStore(
+    // subscriber() - This simply increments the snapshot version when a change is registered.
     useCallback(
       handleStoreChange => {
         return store.listenForChanges(({ path, previousValue, value }) => {
-          hasChangedRef.current = false
           const used = hasUsedPath(path, usedPathsRef.current)
 
           if (used) {
@@ -121,12 +119,12 @@ function useIbiza(initialStateOrSlice, initialState) {
             if (used === 'parent') {
               const childPath = hasChangedChildren(path, usedPathsRef.current, value, previousValue)
               if (childPath) {
-                hasChangedRef.current = true
+                snapshotVersionRef.current += 1
                 store.debug &&
                   console.debug('[ibiza] <%s> rerendering on child %o of %o', id, childPath, path)
               }
             } else {
-              hasChangedRef.current = true
+              snapshotVersionRef.current += 1
               store.debug && console.debug('[ibiza] <%s> rerendering on %o (%s)', id, path, used)
             }
           }
@@ -136,24 +134,13 @@ function useIbiza(initialStateOrSlice, initialState) {
       },
       [id]
     ),
-    // getSnapshot() - Returns a snapshot of the store state. If the state is unchanged, a cached
-    // snapshot is returned.
-    () => {
-      if (!stateRef.current || (!inRender && hasChangedRef.current)) {
-        const proxy = proxify(pathForProxy || null, null, onGet, proxyCache, {
-          cache: false
-        })
-        const state = directPropForProxy ? proxy[directPropForProxy] : proxy
-        stateRef.current = state
-        hasChangedRef.current = false
-      }
-
-      return stateRef.current
-    }
+    // getSnapshot() - Returns a snapshot version of the store state, that is incremented by out
+    // subscribe function above.
+    () => snapshotVersionRef.current
   )
-  inRender = false
 
-  return state
+  const proxy = proxify(pathForProxy || null, null, onGet, proxyCache)
+  return directPropForProxy ? proxy[directPropForProxy] : proxy
 }
 
 export default useIbiza
