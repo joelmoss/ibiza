@@ -1,7 +1,13 @@
 import { useCallback, useRef, useMemo } from 'react'
-import { useSyncExternalStore } from 'use-sync-external-store/shim'
 import memoize from 'micro-memoize'
 import { deepEqual } from 'fast-equals'
+
+// import { useSyncExternalStore } from 'use-sync-external-store/shim'
+// This doesn't work in ESM, because use-sync-external-store only exposes CJS.
+// See: https://github.com/pmndrs/valtio/issues/452
+// The following is a workaround until ESM is supported.
+import useSyncExternalStoreExports from 'use-sync-external-store/shim/index.js'
+const { useSyncExternalStore } = useSyncExternalStoreExports
 
 import { isPlainObject, isDate, get, set } from './utils.js'
 import useComponentName from './use_component_name.js'
