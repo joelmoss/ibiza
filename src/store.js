@@ -380,7 +380,7 @@ class IbizaStore {
           }
         }
 
-        return result
+        return true
       },
 
       deleteProperty(target, prop) {
