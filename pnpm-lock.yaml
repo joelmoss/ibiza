@@ -1,12 +1,12 @@
 lockfileVersion: 5.4
 
 specifiers:
-  '@size-limit/preset-big-lib': ^7.0.8
-  '@swc/core': ^1.2.204
-  '@swc/jest': ^0.2.21
-  '@testing-library/jest-dom': ^5.16.4
-  '@testing-library/react': ^13.3.0
-  cross-fetch: ^3.1.5
+  '@size-limit/preset-big-lib': ^7.0.1
+  '@swc/core': ^1.2.144
+  '@swc/jest': ^0.2.17
+  '@testing-library/jest-dom': ^5.15.0
+  '@testing-library/react': ^13.0.0
+  cross-fetch: ^3.1.4
   eslint: ^8.18.0
   eslint-config-prettier: ^8.5.0
   eslint-plugin-jest: ^26.5.3
@@ -14,20 +14,20 @@ specifiers:
   eslint-plugin-react: ^7.30.0
   eslint-plugin-react-hooks: ^4.6.0
   eslint-plugin-testing-library: ^5.5.1
-  fast-equals: ^4.0.1
+  fast-equals: ^4.0.0
   fetch-mock-jest: ^1.5.1
-  ibiza: link:ibiza
-  jest: ^28.1.1
-  jest-environment-jsdom: ^28.1.1
-  micro-memoize: ^4.0.10
+  ibiza: link:./ibiza
+  jest: ^28.1.0
+  jest-environment-jsdom: ^28.1.0
+  micro-memoize: ^4.0.9
   microbundle: ^0.15.0
-  msw: ^0.42.2
+  msw: ^0.42
   prettier: ^2.7.1
   react: ^18.2.0
   react-dom: ^18.2.0
   react-error-boundary: ^3.1.4
   rimraf: ^3.0.2
-  size-limit: ^7.0.8
+  size-limit: ^7.0.0
   use-sync-external-store: ^1.2.0
 
 dependencies:
@@ -4419,7 +4419,7 @@ packages:
     engines: {node: '>=12.0.0'}
     dependencies:
       ansi-escapes: 4.3.2
-      chalk: 4.1.1
+      chalk: 4.1.2
       cli-cursor: 3.1.0
       cli-width: 3.0.0
       external-editor: 3.1.0
@@ -5353,7 +5353,7 @@ packages:
     resolution: {integrity: sha512-8XPvpAA8uyhfteu8pIvQxpJZ7SYYdpUivZpGy6sFsBuKRY/7rQGavedeB8aK+Zkyq6upMFVL/9AW6vOYzfRyLg==}
     engines: {node: '>=10'}
     dependencies:
-      chalk: 4.1.1
+      chalk: 4.1.2
       is-unicode-supported: 0.1.0
     dev: true
 
@@ -5761,7 +5761,7 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       bl: 4.1.0
-      chalk: 4.1.1
+      chalk: 4.1.2
       cli-cursor: 3.1.0
       cli-spinners: 2.6.1
       is-interactive: 1.0.0
