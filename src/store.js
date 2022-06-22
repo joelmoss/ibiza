@@ -330,7 +330,6 @@ class IbizaStore {
 
         const path = buildPath(prop)
         let previousValue
-        let result
 
         if (!$this.#accessors.has(path)) {
           previousValue = Reflect.get(target, prop, receiver)
@@ -340,10 +339,11 @@ class IbizaStore {
           if (previousValue?.[accessorDef]) {
             $this.#accessors.set(path, previousValue[accessorDef])
           } else {
-            result = Reflect.set(target, prop, value, receiver)
+            Reflect.set(target, prop, value, receiver)
           }
         }
 
+        // Handles any accessor.onSet callback.
         if ($this.#accessors.has(path)) {
           const def = $this.#accessors.get(path)
 
@@ -363,21 +363,18 @@ class IbizaStore {
             def.value = value
           }
 
-          result = def.value
+          def.value
         }
 
-        if (result) {
-          previousValue = rawStateOf(previousValue)
-
-          if (prop === 'length' || !Object.is(previousValue, value)) {
-            if (store.debug) {
-              console.groupCollapsed('[ibiza] Mutated %o', path)
-              console.info({ previousValue, value })
-              console.groupEnd()
-            }
-
-            $this.publishChange({ target, prop, path, previousValue, value })
+        previousValue = rawStateOf(previousValue)
+        if (prop === 'length' || !Object.is(previousValue, value)) {
+          if (store.debug) {
+            console.groupCollapsed('[ibiza] Mutated %o', path)
+            console.info({ previousValue, value })
+            console.groupEnd()
           }
+
+          $this.publishChange({ target, prop, path, previousValue, value })
         }
 
         return true

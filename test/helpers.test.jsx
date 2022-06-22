@@ -67,6 +67,23 @@ describe('accessor()', () => {
     screen.getByText('user=[Joel]')
   })
 
+  it('can set to undefined', async () => {
+    store.state = { id: 1, user: accessor({ initialValue: 'Joel' }) }
+
+    function App() {
+      const model = useIbiza()
+      return <div>user=[{model.user}]</div>
+    }
+
+    render(<App />)
+
+    screen.getByText('user=[Joel]')
+
+    act(() => void (store.state.user = undefined))
+
+    screen.getByText('user=[]')
+  })
+
   it('can define an initialValue', async () => {
     store.state = {
       id: 1,
