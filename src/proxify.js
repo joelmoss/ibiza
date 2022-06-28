@@ -95,7 +95,7 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, options = { cache: tr
     },
 
     ownKeys() {
-      onGet(buildPath())
+      onGet?.(buildPath())
       return Reflect.ownKeys(...arguments)
     }
   })
