@@ -278,6 +278,12 @@ const App = () => {
 }
 ```
 
+Note that used state is not tracked within functions. This avoids unnecessary component re-rendering
+when state changes that is used by a function. The function will always use the latest state anyway,
+so no need to track the state that it uses.
+
+This does however, mean that you should not call functions during rendering - use a getter instead.
+
 ### Getters and Setters
 
 Ibiza supports Javascript getters and setters in your state and models.

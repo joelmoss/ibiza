@@ -556,12 +556,12 @@ describe('query()', () => {
       const state = useIbiza({
         comment: {
           body: 'A comment',
-          read(state) {
-            return `${this.body} by ${state.user.name}`
+          get read() {
+            return `${this.body} by ${this.$root.user.name}`
           }
         }
       })
-      return <h2>{state.comment.read()}</h2>
+      return <h2>{state.comment.read}</h2>
     }
 
     render(
