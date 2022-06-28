@@ -46,7 +46,7 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, options = { cache: tr
         const descriptor = Object.getOwnPropertyDescriptor(target, prop)
         const isDataDesc = Object.prototype.hasOwnProperty.call(descriptor, 'value')
         if (isDataDesc && descriptor.value?.[accessorDef]) {
-          onGet(buildPath(prop), prop)
+          onGet?.(buildPath(prop), prop)
 
           return Reflect.get(...arguments)
         }
