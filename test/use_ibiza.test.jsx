@@ -2186,7 +2186,7 @@ describe('functions (actions)', () => {
     expect(renderCount).toBe(3)
   })
 
-  it('should not re-render when using state in a function', async () => {
+  it('should not re-render when using unused state in a function', async () => {
     let renderCount = 0
     const App = () => {
       const state = useIbiza({
@@ -2207,6 +2207,36 @@ describe('functions (actions)', () => {
     render(<App />)
 
     fireEvent.click(screen.getByRole('button'))
+
+    await expect(renderCount).toBe(1)
+  })
+
+  it('should not re-render when dependent state in function changes', async () => {
+    store.state = {
+      count: 0,
+      getCount() {
+        return this.count
+      }
+    }
+    let renderCount = 0
+    const App = () => {
+      const model = useIbiza()
+      renderCount++
+      return (
+        <>
+          <h1>Hello</h1>
+          <button onClick={model.getCount}>Increment</button>
+        </>
+      )
+    }
+
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button'))
+
+    act(() => {
+      store.state.count += 1
+    })
 
     await expect(renderCount).toBe(1)
   })

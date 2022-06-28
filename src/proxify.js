@@ -72,11 +72,13 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, options = { cache: tr
       }
 
       // Functions are bound to the local state. And the global state is passed as the first
-      // argument.
+      // argument. Note that used state is not tracked within functions. This avoids component
+      // re-rendering when state changes that is used by a function. The function will always use
+      // the latest state, so no need to track the state that it uses.
       if (typeof result === 'function' && hasOwnProperty) {
         return result.bind(
-          proxify(target, parentPath, onGet, proxyCache),
-          proxify(null, null, onGet, proxyCache)
+          proxify(target, parentPath, null, proxyCache, { cache: false }),
+          proxify(null, null, null, proxyCache, { cache: false })
         )
       }
 
@@ -87,7 +89,7 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, options = { cache: tr
         return proxify(result, path, onGet, proxyCache)
       }
 
-      onGet(path, prop)
+      onGet?.(path, prop)
 
       return result
     },
