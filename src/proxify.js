@@ -10,7 +10,7 @@ export default proxify
 //
 // The `store` maintains a global copy of the state. It can be read from at any time and anywhere,
 // but cannot be written to.
-function proxify(objOrPath, parentPath, onGet, proxyCache, options = { cache: true }) {
+function proxify(objOrPath, parentPath, onGet) {
   let obj
   if (typeof objOrPath === 'string') {
     obj = get(store.state, objOrPath) || {}
@@ -19,7 +19,6 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, options = { cache: tr
     obj = objOrPath || store.state
   }
 
-  if (options.cache && proxyCache.has(obj)) return proxyCache.get(obj)
   if (obj === null) return obj
   if (obj.isHookProxy) return obj
 
@@ -30,12 +29,14 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, options = { cache: tr
       if (prop === 'isHookProxy') return true
 
       // Return store state.
-      if (prop === '$root') return proxify(null, null, onGet, proxyCache)
+      if (prop === '$root') {
+        return proxify(null, null, onGet)
+      }
 
       // Return model (top level ancestor).
       if (prop === '$model') {
-        const [model] = buildPath(prop).split('.')
-        return proxify(model, null, onGet, proxyCache)
+        const [model] = buildPath(prop, parentPath).split('.')
+        return proxify(model, null, onGet)
       }
 
       if (Object.isFrozen(target)) return rawStateOf(Reflect.get(...arguments))
@@ -46,7 +47,7 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, options = { cache: tr
         const descriptor = Object.getOwnPropertyDescriptor(target, prop)
         const isDataDesc = Object.prototype.hasOwnProperty.call(descriptor, 'value')
         if (isDataDesc && descriptor.value?.[accessorDef]) {
-          onGet?.(buildPath(prop), prop)
+          onGet?.(buildPath(prop, parentPath), prop)
 
           return Reflect.get(...arguments)
         }
@@ -71,22 +72,19 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, options = { cache: tr
         return result
       }
 
+      const path = buildPath(prop, parentPath)
+
       // Functions are bound to the local state. And the global state is passed as the first
       // argument. Note that used state is not tracked within functions. This avoids component
       // re-rendering when state changes that is used by a function. The function will always use
       // the latest state, so no need to track the state that it uses.
       if (typeof result === 'function' && hasOwnProperty) {
-        return result.bind(
-          proxify(target, parentPath, onGet, proxyCache, { cache: true }),
-          proxify(null, null, onGet, proxyCache, { cache: true })
-        )
+        return result.bind(proxify(target, parentPath), proxify(null, null))
       }
-
-      const path = buildPath(prop)
 
       // If result is an object, but not null, it must be a nested object, so proxify and return it.
       if (result !== null && typeof result === 'object' && !isDate(result)) {
-        return proxify(result, path, onGet, proxyCache)
+        return proxify(result, path, onGet)
       }
 
       onGet?.(path, prop)
@@ -95,19 +93,17 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, options = { cache: tr
     },
 
     ownKeys() {
-      onGet?.(buildPath())
+      onGet?.(parentPath)
       return Reflect.ownKeys(...arguments)
     }
   })
 
-  function buildPath(prop) {
-    if (!prop) return parentPath
-    if (prop.indexOf('/') === 0) return prop
-
-    return parentPath ? [parentPath, prop].join('.') : prop
-  }
-
-  proxyCache.set(obj, proxy)
-
   return proxy
+}
+
+function buildPath(prop, parentPath) {
+  if (!prop) return parentPath
+  if (prop.indexOf('/') === 0) return prop
+
+  return parentPath ? [parentPath, prop].join('.') : prop
 }

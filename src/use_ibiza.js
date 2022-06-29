@@ -35,9 +35,6 @@ function useIbiza(initialStateOrSlice, initialState) {
   const slicePathRef = useRef()
   const snapshotVersionRef = useRef(0)
 
-  // Per-hook proxyCache.
-  const proxyCache = useMemo(() => new WeakMap(), [])
-
   // Called when a property is get, in order to track its usage. It appends the given `path` to the
   // property, to an array of property paths used by this component.
   const onGet = useCallback(
@@ -145,7 +142,7 @@ function useIbiza(initialStateOrSlice, initialState) {
     () => snapshotVersionRef.current
   )
 
-  const proxy = proxify(pathForProxy || null, null, onGet, proxyCache)
+  const proxy = proxify(pathForProxy || null, null, onGet)
   return directPropForProxy ? proxy[directPropForProxy] : proxy
 }
 
