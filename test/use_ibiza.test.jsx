@@ -1,4 +1,5 @@
-import { render, renderHook, act, fireEvent, screen } from '@testing-library/react'
+import { render, waitFor, renderHook, act, fireEvent, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import React, { Fragment, Suspense, useCallback, useEffect, useState } from 'react'
 import { rest } from 'msw'
 import { setupServer } from 'msw/node'
@@ -511,7 +512,7 @@ describe('mutating', () => {
     await screen.findByText('Ash Moss')
   })
 
-  it.skip('should rerender when function reads state', async () => {
+  it('should rerender when function reads state', async () => {
     store.state = {
       count: 1,
       add() {
@@ -2234,11 +2235,47 @@ describe('functions (actions)', () => {
 
     fireEvent.click(screen.getByRole('button'))
 
+    await expect(renderCount).toBe(1)
+
     act(() => {
       store.state.count += 1
     })
 
     await expect(renderCount).toBe(1)
+  })
+
+  it('when function is defined in render, but not called, state change should re-render', async () => {
+    store.state = {
+      name: '',
+      reset() {
+        this.name = ''
+      }
+    }
+
+    const App = () => {
+      const model = useIbiza()
+
+      return (
+        <>
+          {model.showInput && <h1>name=[{model.name}]</h1>}
+          <button onClick={model.reset}>Click me</button>
+        </>
+      )
+    }
+
+    render(<App />)
+
+    act(() => {
+      store.state.showInput = true
+    })
+
+    await screen.findByText('name=[]')
+
+    act(() => {
+      store.state.name = 'Joel'
+    })
+
+    await screen.findByText('name=[Joel]')
   })
 
   it('accept a payload', () => {

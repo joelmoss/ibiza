@@ -295,6 +295,9 @@ class IbizaStore {
 
           if (shouldFetch(prop)) {
             result = $this.fetch(prop, { suspense: true })
+
+            // TODO: This fails if we don't set it, but the condition above and below do not require
+            // the set, and simply return the fetch result. Why?
             this.set(target, prop, result, receiver)
           }
         } else if (path.indexOf('/') === 0) {
