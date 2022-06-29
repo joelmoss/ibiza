@@ -77,8 +77,8 @@ function proxify(objOrPath, parentPath, onGet, proxyCache, options = { cache: tr
       // the latest state, so no need to track the state that it uses.
       if (typeof result === 'function' && hasOwnProperty) {
         return result.bind(
-          proxify(target, parentPath, null, proxyCache, { cache: false }),
-          proxify(null, null, null, proxyCache, { cache: false })
+          proxify(target, parentPath, onGet, proxyCache, { cache: true }),
+          proxify(null, null, onGet, proxyCache, { cache: true })
         )
       }
 
