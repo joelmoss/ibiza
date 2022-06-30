@@ -1,27 +1,13 @@
 import { render, fireEvent, act, screen } from '@testing-library/react'
-import React, { Suspense } from 'react'
-import { rest } from 'msw'
-import { setupServer } from 'msw/node'
+import React from 'react'
 import { store, freeze, createModel, createContextModel, IbizaProvider } from 'ibiza'
 
-const server = setupServer(
-  rest.get('/post', async (req, res, ctx) => {
-    return res(ctx.delay(100), ctx.json({ title: 'My First Post' }))
-  }),
-  rest.get('/user', async (req, res, ctx) => {
-    return res(ctx.delay(100), ctx.json({ name: 'Joel Moss' }))
-  })
-)
-
-beforeAll(() => server.listen())
 afterEach(() => {
   store.reset()
   store.debug = false
 
   jest.clearAllMocks()
-  server.resetHandlers()
 })
-afterAll(() => server.close())
 
 it('merges initial state', () => {
   const usePost = createModel('post', (_, props) => ({
@@ -216,94 +202,6 @@ describe('re-renders on used state', () => {
     expect(renderCountApp).toBe(1)
     expect(renderCountChild1).toBe(1)
     expect(renderCountChild2).toBe(2)
-  })
-})
-
-describe('URL backed state', () => {
-  it('fetches from the server', async () => {
-    const useUser = createModel('/user')
-    const fetchSpy = jest.spyOn(store, 'fetchFn')
-
-    function User1() {
-      const user = useUser()
-      return <div>User1=[{user.name}]</div>
-    }
-    function User2() {
-      const user = useUser()
-      return <div>User2=[{user.name}]</div>
-    }
-
-    const { container } = render(
-      <Suspense fallback={<div>fallback</div>}>
-        <User1 />
-        <User2 />
-      </Suspense>
-    )
-
-    screen.getByText('fallback')
-    await act(() => new Promise(res => setTimeout(res, 150)))
-    expect(container.textContent).toMatchInlineSnapshot('"User1=[Joel Moss]User2=[Joel Moss]"')
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
-  })
-
-  it('accepts a custom fetch function option', async () => {
-    const customFetch = jest.fn(store.fetchFn)
-    const useUser = createModel('/user', {}, { fetcher: customFetch })
-
-    function User1() {
-      const user = useUser()
-      return <div>User1=[{user.name}]</div>
-    }
-    function User2() {
-      const user = useUser()
-      return <div>User2=[{user.name}]</div>
-    }
-
-    const { container } = render(
-      <Suspense fallback={<div>fallback</div>}>
-        <User1 />
-        <User2 />
-      </Suspense>
-    )
-
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-    await act(() => new Promise(res => setTimeout(res, 150)))
-    expect(container.textContent).toMatchInlineSnapshot('"User1=[Joel Moss]User2=[Joel Moss]"')
-    expect(customFetch).toHaveBeenCalledTimes(1)
-  })
-
-  it('model definition accepts server response', async () => {
-    const useUser = createModel('/user', data => {
-      const [firstName, lastName] = data.name.split(' ')
-
-      return {
-        firstName,
-        lastName
-      }
-    })
-    const fetchSpy = jest.spyOn(store, 'fetchFn')
-
-    function User() {
-      const user = useUser()
-      return (
-        <div>
-          {user.firstName} {user.lastName}
-        </div>
-      )
-    }
-
-    render(
-      <Suspense fallback={<div>fallback</div>}>
-        <User />
-      </Suspense>
-    )
-
-    screen.getByText('fallback')
-
-    await act(() => new Promise(res => setTimeout(res, 150)))
-
-    await screen.findByText('Joel Moss')
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 })
 
