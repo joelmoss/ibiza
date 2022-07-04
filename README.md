@@ -480,3 +480,22 @@ const MySecondComponent = () => {
 };
 ```
 
+## How Does Ibiza Work?
+
+It's all thanks to the magic of Unicorns! 🦄
+
+...actually, I lie. In reality, the magic is courtesy of [JavaScript Proxies](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy).
+
+Anytime you call `useIbiza` in a component, a Proxy of the store state is returned. Reading
+properties from this proxy is recorded, and each property is tracked as being used in the component.
+We call this the Hook Proxy, as it is specific to the instance of the `useIbiza` hook, and therefore
+the component it is used within.
+
+You can read and write from/to the Hook Proxy, as you would any JavaScript object. Reading, or using
+a property, will cause the component to re-render when the property's value is mutated. And mutating
+a property value will cause any component that has read the same property, to re-render.
+
+The Hook Proxy wraps the Store Proxy, which contains the actual Ibiza global state. As with the Hook
+Proxy, the Store Proxy can be read and written to, and components that have used the state will
+re-render upon mutation. This means you can mutate the state via the Hook Proxy and/or the Store
+Proxy. The Store Proxy does not track property usage.

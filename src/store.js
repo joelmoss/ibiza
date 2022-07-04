@@ -7,6 +7,8 @@ export const isQuery = Symbol('ibizaIsQuery')
 export const isTrackedFn = Symbol('ibizaIsTrackedFn')
 export const queryFn = Symbol('ibizaQueryFunction')
 
+const protectedProps = ['$root', '$model']
+
 class IbizaStore {
   debug = process.env.NODE_ENV === 'development'
 
@@ -179,19 +181,25 @@ class IbizaStore {
 
     const proxy = new Proxy(target, {
       get(target, prop, receiver) {
+        let path
+
         if (prop === 'isProxy') return true
         if (prop === 'isStoreProxy') return true
         if (prop === 'isHookProxy') return false
         if (prop === '__path') return parentPath
         if (prop === '__fetcher') return getFetcherByProp(parentPath)
+        if (prop === '__raw') return parentPath ? get($this.rawState, parentPath) : $this.rawState
 
-        if (prop === '__raw') {
-          return parentPath ? get($this.rawState, parentPath) : $this.rawState
-        }
+        // If prop === '$root', return entire store state. If parentPath is null, return undefined.
+        if (prop === '$root') return parentPath === null ? undefined : $this.state
+
+        // If prop === '$model', return the current model (top level ancestor).
+        // Return the current model (top level ancestor).
+        if (prop === '$model') return get(store.state, parentPath?.split('.')[0])
 
         // Return save function if we are in a URL model.
         if (prop === 'save') {
-          const path = buildPath(prop)
+          path = buildPath(prop)
 
           if (path.indexOf('/') === 0) {
             return async (url = {}, options = {}) => {
@@ -199,11 +207,7 @@ class IbizaStore {
                 options = url
                 ;[url] = path.split('.')
               }
-
-              const response = await $this.fetch(url, {
-                method: 'patch',
-                ...options
-              })
+              const response = await $this.fetch(url, { method: 'patch', ...options })
               if (response !== null) {
                 $this.state[url] = response
               }
@@ -230,6 +234,8 @@ class IbizaStore {
           }
         }
 
+        let result = Reflect.get(target, prop, receiver)
+
         // Forward any functions and non-own properties while allowing undefined properties, except
         // the `length` prop which needs to be tracked so we can respond to array changes.
         if (
@@ -237,11 +243,12 @@ class IbizaStore {
           !Object.prototype.hasOwnProperty.call(target, prop) &&
           (Object.getPrototypeOf(target)[prop] || typeof prop === 'symbol')
         ) {
-          return Reflect.get(target, prop, receiver)
+          return result
         }
 
-        const path = buildPath(prop)
-        let result = Reflect.get(target, prop, receiver)
+        if (typeof path === 'undefined') {
+          path = buildPath(prop)
+        }
 
         if (
           Object.isFrozen(target) ||
@@ -330,6 +337,10 @@ class IbizaStore {
 
         if (Object.isFrozen(target)) {
           throw new TypeError(`Cannot mutate '${prop}'. Object is frozen!`)
+        }
+
+        if (protectedProps.includes(prop)) {
+          throw new Error(`Cannot assign to ${prop}`)
         }
 
         const path = buildPath(prop)

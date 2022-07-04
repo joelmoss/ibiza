@@ -23,6 +23,8 @@ import store from './store.js'
 // - initialState (?Object|Function) - The value given will be merged into the store state. If a
 //    function, then that function will be called with the state, and the return value merged into
 //    the store.
+//
+// Returns a Hook Proxy, which wraps the global Store Proxy.
 function useIbiza(initialStateOrSlice, initialState) {
   const id = useComponentName()
 
@@ -42,7 +44,6 @@ function useIbiza(initialStateOrSlice, initialState) {
       if (usedPathsRef.current.includes(path)) return
 
       store.debug && console.debug('[ibiza] <%s> tracking %o', id, path)
-
       usedPathsRef.current.push(path)
     },
     [id]
@@ -137,7 +138,7 @@ function useIbiza(initialStateOrSlice, initialState) {
       },
       [id]
     ),
-    // getSnapshot() - Returns a snapshot version of the store state, that is incremented by out
+    // getSnapshot() - Returns a snapshot version of the store state, that is incremented by our
     // subscribe function above.
     () => snapshotVersionRef.current
   )

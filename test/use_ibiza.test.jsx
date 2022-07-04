@@ -1175,7 +1175,7 @@ describe('mutating', () => {
 
   it.skip('should re-render on re-assigning of tracked object', () => {
     let renderCount = 0
-    store.debug = true
+    // store.debug = true
     store.state.params = { name: 'Joel' }
     const App = () => {
       renderCount++
