@@ -21,6 +21,24 @@ export function accessor(options = {}) {
   return def
 }
 
+// Creates a dynamic query property.
+//
+// - fn - A Function that should return a URL string.
+//
+// Usually, a query property is defined by using a URL for the name of the property:
+//
+//  store.state.user['/users/1'] = null
+//
+// But this means the URL used can never change. The `query` helper allows you to define a dynamic
+// query property.
+//
+// Example:
+//
+//  store.state = {
+//    userId: 1,
+//    user: query(() => `/users/${this.id}`)
+//  }
+//
 export function query(fn) {
   const def = {}
 
@@ -30,6 +48,18 @@ export function query(fn) {
   return def
 }
 
+// By default, functions do not cause the usage of state to be tracked. We recommend using an
+// accessor instead. However, sometimes you do want to track state usage in your function.
+//
+// Example:
+//
+//  store.state = {
+//    errors: { name: 'invalid' },
+//    errorFor: trackFunction(function(_, name) {
+//      return this.errors[name]
+//    })
+//  }
+//
 export function trackFunction(fn) {
   Object.defineProperty(fn, isTrackedFn, { value: true })
   return fn
@@ -50,8 +80,8 @@ export function freeze(object) {
     throw new Error('Ibiza#freeze only supports plain objects, arrays, and primitives')
   }
 
-  // At this point we know that we're dealing with either an array or plain object, so
-  // just freeze it and recurse on its values.
+  // At this point we know that we're dealing with either an array or plain object, so just freeze
+  // it and recurse over its values.
   Object.freeze(object)
   Object.keys(object).forEach(key => {
     freeze(object[key])

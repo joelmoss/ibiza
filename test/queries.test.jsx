@@ -1,4 +1,4 @@
-import { render, act, fireEvent, screen } from '@testing-library/react'
+import { waitFor, render, act, fireEvent, screen } from '@testing-library/react'
 import React, { Fragment, Suspense, useState } from 'react'
 import { rest } from 'msw'
 import { setupServer } from 'msw/node'
@@ -363,47 +363,6 @@ it('will refetch if store.fetches entry does not exist', async () => {
   expect(fetchSpy).toHaveBeenCalledTimes(2)
 })
 
-test('.refetch', async () => {
-  const fetchSpy = jest.spyOn(store, 'fetchFn')
-
-  function User() {
-    const user = useIbiza('/user')
-    return (
-      <>
-        <div>{user.name}</div>
-        <button onClick={() => (user.name = 'Ash Moss')}>click</button>
-        <button onClick={() => user.refetch()}>refetch</button>
-      </>
-    )
-  }
-  const App = () => {
-    return (
-      <Suspense fallback={<div>fallback</div>}>
-        <User />
-      </Suspense>
-    )
-  }
-
-  render(<App />)
-
-  screen.getByText('fallback')
-
-  await act(() => new Promise(res => setTimeout(res, 150)))
-
-  screen.getByText('Joel Moss')
-  expect(fetchSpy).toHaveBeenCalledTimes(1)
-
-  fireEvent.click(screen.getByRole('button', { name: 'click' }))
-
-  await screen.findByText('Ash Moss')
-  expect(fetchSpy).toHaveBeenCalledTimes(1)
-
-  fireEvent.click(screen.getByRole('button', { name: 'refetch' }))
-
-  await screen.findByText('Joel Moss')
-  expect(fetchSpy).toHaveBeenCalledTimes(2)
-})
-
 test('.__fetcher', async () => {
   function User() {
     const user = useIbiza('/user')
@@ -506,8 +465,139 @@ it('can get URL prop from a getter', async () => {
   expect(fetchSpy).toHaveBeenCalledTimes(1)
 })
 
+describe('.refetch', () => {
+  test('with URL prop', async () => {
+    const fetchSpy = jest.spyOn(store, 'fetchFn')
+
+    function User() {
+      const user = useIbiza('/user')
+      return (
+        <>
+          <div>{user.name}</div>
+          <button onClick={() => (user.name = 'Ash Moss')}>click</button>
+          <button onClick={() => user.refetch()}>refetch</button>
+        </>
+      )
+    }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      )
+    }
+
+    render(<App />)
+
+    screen.getByText('fallback')
+
+    await act(() => new Promise(res => setTimeout(res, 150)))
+
+    screen.getByText('Joel Moss')
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'click' }))
+
+    await screen.findByText('Ash Moss')
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'refetch' }))
+
+    await screen.findByText('Joel Moss')
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+  })
+
+  test.skip('with query() helper', async () => {
+    const fetchSpy = jest.spyOn(store, 'fetchFn')
+    store.state = {
+      user: query(() => '/user')
+    }
+
+    function User() {
+      const { user } = useIbiza()
+      return (
+        <>
+          <div>{user.name}</div>
+          <button onClick={() => (user.name = 'Ash Moss')}>click</button>
+          <button onClick={() => user.refetch()}>refetch</button>
+        </>
+      )
+    }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      )
+    }
+
+    render(<App />)
+
+    screen.getByText('fallback')
+
+    await act(() => new Promise(res => setTimeout(res, 150)))
+
+    screen.getByText('Joel Moss')
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'click' }))
+
+    await screen.findByText('Ash Moss')
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'refetch' }))
+
+    await screen.findByText('Joel Moss')
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+  })
+})
+
 describe('.save', () => {
+  it.skip('with query() helper', async () => {
+    const fetchSpy = jest.spyOn(store, 'fetchFn')
+    // store.debug = true
+    store.state = {
+      user: query(() => '/user')
+    }
+
+    function User() {
+      const { user } = useIbiza()
+      return (
+        <>
+          <div>user.name=[{user.name}]</div>
+          <button onClick={() => user.save()}>save</button>
+        </>
+      )
+    }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      )
+    }
+
+    render(<App />)
+
+    screen.getByText('fallback')
+    await screen.findByText('user.name=[Joel Moss]')
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button'))
+
+    await screen.findByText('user.name=[Ash Moss]')
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+
+    fireEvent.click(screen.getByRole('button'))
+    await act(() => new Promise(res => setTimeout(res, 150)))
+    expect(fetchSpy).toHaveBeenCalledTimes(3)
+  })
+
+  it.todo('sends patch request with current prop value')
+
   it('updates state from response', async () => {
+    const fetchSpy = jest.spyOn(store, 'fetchFn')
+
     function User() {
       const user = useIbiza('/user')
       return (
@@ -528,8 +618,43 @@ describe('.save', () => {
     render(<App />)
 
     screen.getByText('fallback')
+    await screen.findByText('user.name=[Joel Moss]')
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button'))
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+
+    await screen.findByText('user.name=[Ash Moss]')
+
+    fireEvent.click(screen.getByRole('button'))
+
     await act(() => new Promise(res => setTimeout(res, 150)))
-    screen.getByText('user.name=[Joel Moss]')
+
+    expect(fetchSpy).toHaveBeenCalledTimes(3)
+  })
+
+  it.skip('accepts a fetch `init` argument', async () => {
+    function User() {
+      const user = useIbiza('/user')
+      return (
+        <>
+          <div>user.name=[{user.name}]</div>
+          <button onClick={() => user.save()}>save</button>
+        </>
+      )
+    }
+    const App = () => {
+      return (
+        <Suspense fallback={<div>fallback</div>}>
+          <User />
+        </Suspense>
+      )
+    }
+
+    render(<App />)
+
+    screen.getByText('fallback')
+    await screen.findByText('user.name=[Joel Moss]')
 
     fireEvent.click(screen.getByRole('button'))
 

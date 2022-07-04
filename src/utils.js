@@ -27,7 +27,7 @@ export function isPlainObject(value) {
  *
  * @param {Object} object The object to query.
  * @param {Array|string} path The path of the property to get.
- * @returns {*} Returns the resolved value.
+ * @returns {*} Returns the resolved value, or undefined if given object is also undefined.
  * @example
  *
  * var object = { 'a': [{ 'b': { 'c': 3 } }] };
@@ -39,6 +39,8 @@ export function isPlainObject(value) {
  * // => 3
  */
 export function get(object, path) {
+  if (typeof path === 'undefined' || path === null) return undefined
+
   path = isKey(path, object) ? [path] : castPath(path)
 
   let index = 0
