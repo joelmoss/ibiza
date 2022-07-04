@@ -1,12 +1,36 @@
 import { render, act, screen } from '@testing-library/react'
 import React from 'react'
-import { useIbiza, store, accessor } from 'ibiza'
+import { useIbiza, store, accessor, trackFunction } from 'ibiza'
 
 afterEach(() => {
   store.reset()
   store.debug = false
 
   jest.clearAllMocks()
+})
+
+describe('track()', () => {
+  it('tracks state usage within the function', async () => {
+    store.state = {
+      errors: {},
+      errorFor: trackFunction(function (_, key) {
+        return this.errors[key]
+      })
+    }
+
+    function App() {
+      const model = useIbiza()
+      return <div>errors.name=[{model.errorFor('name')}]</div>
+    }
+
+    render(<App />)
+
+    screen.getByText('errors.name=[]')
+
+    act(() => void (store.state.errors.name = 'invalid'))
+
+    screen.getByText('errors.name=[invalid]')
+  })
 })
 
 describe('accessor()', () => {

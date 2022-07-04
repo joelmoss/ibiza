@@ -1,4 +1,4 @@
-import { isQuery, queryFn, accessorDef } from './store.js'
+import { isQuery, queryFn, accessorDef, isTrackedFn } from './store.js'
 
 // Create a accessor descriptor. This defines a getter and setter with a internally scoped value.
 //
@@ -28,6 +28,11 @@ export function query(fn) {
   Object.defineProperty(def, queryFn, { value: fn })
 
   return def
+}
+
+export function trackFunction(fn) {
+  Object.defineProperty(fn, isTrackedFn, { value: true })
+  return fn
 }
 
 export function freeze(object) {

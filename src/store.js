@@ -4,6 +4,7 @@ import { get, isPlainObject, isDate } from './utils.js'
 
 export const accessorDef = Symbol('ibizaAccessorDefinition')
 export const isQuery = Symbol('ibizaIsQuery')
+export const isTrackedFn = Symbol('ibizaIsTrackedFn')
 export const queryFn = Symbol('ibizaQueryFunction')
 
 class IbizaStore {
