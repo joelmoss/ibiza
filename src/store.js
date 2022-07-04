@@ -156,6 +156,18 @@ class IbizaStore {
     throw this.fetches[resource].fetch
   }
 
+  // Returns true if a fetch with the given key does not exist, or if the fetch exists at the given
+  // key.
+  #shouldFetch(key) {
+    return !Object.prototype.hasOwnProperty.call(this.fetches, key) || this.fetches[key].fetch
+  }
+
+  #throwOnFetchError(key) {
+    if (Object.prototype.hasOwnProperty.call(this.fetches, key) && this.fetches[key].error) {
+      throw this.fetches[key].error
+    }
+  }
+
   #proxyOf(target, parentPath = null) {
     if (target[isHookProxy]) return target
     if (this.#proxyCache.has(target)) return this.#proxyCache.get(target)
@@ -174,14 +186,14 @@ class IbizaStore {
         let path
 
         // Private
-        if (prop === isProxy) return true
-        if (prop === isStoreProxy) return true
+        if (prop === isProxy || prop === isStoreProxy) return true
         if (prop === isHookProxy) return false
         if (prop === propertyPath) return parentPath
 
         // Public
-        if (prop === '$unproxiedState')
+        if (prop === '$unproxiedState') {
           return parentPath ? get($this.unproxiedState, parentPath) : $this.unproxiedState
+        }
 
         // If prop === '$root', return entire store state. If parentPath is null, return undefined.
         if (prop === '$root') return parentPath === null ? undefined : $this.state
@@ -239,10 +251,6 @@ class IbizaStore {
           return result
         }
 
-        if (typeof path === 'undefined') {
-          path = buildPath(prop)
-        }
-
         if (
           Object.isFrozen(target) ||
           (result !== null && typeof result === 'object' && Object.isFrozen(result))
@@ -250,25 +258,19 @@ class IbizaStore {
           return result
         }
 
+        if (typeof path === 'undefined') {
+          path = buildPath(prop)
+        }
+
+        // Result is an accessor, so make sure its definition is cached in #accessors.
         if (result?.[accessorDef] && !$this.#accessors.has(path)) {
           $this.#accessors.set(path, result[accessorDef])
         }
 
+        // Prop is an accessor, so call the accessor's onGet callback - if defined.
         if ($this.#accessors.has(path)) {
           const def = $this.#accessors.get(path)
           return def.onGet ? def.onGet.call(receiver, def.value) : def.value
-        }
-
-        const shouldFetch = key =>
-          !Object.prototype.hasOwnProperty.call($this.fetches, key) || $this.fetches[key].fetch
-
-        const throwOnFetchError = key => {
-          if (
-            Object.prototype.hasOwnProperty.call($this.fetches, key) &&
-            $this.fetches[key].error
-          ) {
-            throw $this.fetches[key].error
-          }
         }
 
         if (result?.[isQuery]) {
@@ -276,9 +278,9 @@ class IbizaStore {
           const url = qfn.call(receiver)
 
           if (url) {
-            throwOnFetchError(url)
+            $this.#throwOnFetchError(url)
 
-            if (shouldFetch(url)) {
+            if ($this.#shouldFetch(url)) {
               const fetchResult = $this.fetch(url, { suspense: true })
 
               Object.defineProperty(fetchResult, isQuery, { value: true })
@@ -292,9 +294,9 @@ class IbizaStore {
             }
           }
         } else if (prop.indexOf('/') === 0) {
-          throwOnFetchError(prop)
+          $this.#throwOnFetchError(prop)
 
-          if (shouldFetch(prop)) {
+          if ($this.#shouldFetch(prop)) {
             result = $this.fetch(prop, { suspense: true })
 
             // TODO: This fails if we don't set it, but the condition above and below do not require
@@ -305,9 +307,9 @@ class IbizaStore {
           const [url, ...rest] = path.split('.')
           const urlPath = rest.join('.')
 
-          throwOnFetchError(url)
+          $this.#throwOnFetchError(url)
 
-          if (shouldFetch(url)) {
+          if ($this.#shouldFetch(url)) {
             const urlResult = $this.fetch(url, { suspense: true })
             // $this.state[url] = urlResult
             result = get(urlResult, urlPath)
