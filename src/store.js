@@ -177,7 +177,8 @@ class IbizaStore {
         if (prop === isStoreProxy) return true
         if (prop === isHookProxy) return false
         if (prop === propertyPath) return parentPath
-        if (prop === '$raw') return parentPath ? get($this.rawState, parentPath) : $this.rawState
+        if (prop === '$unproxied')
+          return parentPath ? get($this.rawState, parentPath) : $this.rawState
 
         // If prop === '$root', return entire store state. If parentPath is null, return undefined.
         if (prop === '$root') return parentPath === null ? undefined : $this.state
