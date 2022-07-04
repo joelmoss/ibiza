@@ -23,6 +23,19 @@ describe('$root', () => {
       expect(store.state.$root).toBeUndefined()
     })
 
+    test('from another property', () => {
+      store.state = {
+        user: { name: 'Joel' },
+        users: {
+          get user() {
+            return this.$root.user
+          }
+        }
+      }
+
+      expect(store.state.users.user).toEqual(store.state.user)
+    })
+
     test('returns the state root', () => {
       expect(store.state.users.$root).toEqual(store.state)
       expect(store.state.users.$root[isProxy]).toBe(true)
@@ -42,6 +55,20 @@ describe('$root', () => {
       const { result } = renderHook(() => useIbiza().$root)
 
       expect(result.current).toBeUndefined()
+    })
+
+    test('from another property', () => {
+      store.state = {
+        user: { name: 'Joel' },
+        users: {
+          get user() {
+            return this.$root.user
+          }
+        }
+      }
+      const { result } = renderHook(() => useIbiza('users.user'))
+
+      expect(result.current).toEqual(store.state.user)
     })
 
     test('with slice', () => {
