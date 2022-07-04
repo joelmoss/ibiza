@@ -2,6 +2,10 @@
 
 import { get, isPlainObject, isDate } from './utils.js'
 
+export const isProxy = Symbol('ibizaIsProxy')
+export const isStoreProxy = Symbol('ibizaIsStoreProxy')
+export const isHookProxy = Symbol('ibizaIsHookProxy')
+export const propertyPath = Symbol('ibizaPropertyPath')
 export const accessorDef = Symbol('ibizaAccessorDefinition')
 export const isQuery = Symbol('ibizaIsQuery')
 export const isTrackedFn = Symbol('ibizaIsTrackedFn')
@@ -153,7 +157,7 @@ class IbizaStore {
   }
 
   #proxyOf(target, parentPath = null) {
-    if (target.isHookProxy) return target
+    if (target[isHookProxy]) return target
     if (this.#proxyCache.has(target)) return this.#proxyCache.get(target)
 
     function buildPath(prop) {
@@ -163,32 +167,17 @@ class IbizaStore {
       return parentPath ? [parentPath, prop].join('.') : prop
     }
 
-    // Returns the fetcher (from store.fetches) for the given `prop`.
-    const getFetcherByProp = prop => {
-      if (prop.indexOf('/') !== 0) {
-        const path = buildPath(prop)
-        if (path.indexOf('/') === 0) {
-          prop = path.split('.')[0]
-        }
-      }
-
-      if (Object.prototype.hasOwnProperty.call(this.fetches, prop)) {
-        return this.fetches[prop]
-      }
-    }
-
     const $this = this
 
     const proxy = new Proxy(target, {
       get(target, prop, receiver) {
         let path
 
-        if (prop === 'isProxy') return true
-        if (prop === 'isStoreProxy') return true
-        if (prop === 'isHookProxy') return false
-        if (prop === '__path') return parentPath
-        if (prop === '__fetcher') return getFetcherByProp(parentPath)
-        if (prop === '__raw') return parentPath ? get($this.rawState, parentPath) : $this.rawState
+        if (prop === isProxy) return true
+        if (prop === isStoreProxy) return true
+        if (prop === isHookProxy) return false
+        if (prop === propertyPath) return parentPath
+        if (prop === '$raw') return parentPath ? get($this.rawState, parentPath) : $this.rawState
 
         // If prop === '$root', return entire store state. If parentPath is null, return undefined.
         if (prop === '$root') return parentPath === null ? undefined : $this.state
@@ -331,7 +320,7 @@ class IbizaStore {
       },
 
       set(target, prop, value, receiver) {
-        if (target.isProxy) {
+        if (target[isProxy]) {
           console.warn('[ibiza] Attempting to set a property (%s) on proxied object', prop, target)
         }
 
@@ -429,9 +418,9 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Accepts a state Proxy and returns the raw un-proxied state.
 export function rawStateOf(state) {
-  if (!state || !state.isProxy) return state
+  if (!state || !state[isProxy]) return state
 
-  return state.__path ? get(store.rawState, state.__path) : store.rawState
+  return state[propertyPath] ? get(store.rawState, state[propertyPath]) : store.rawState
 }
 
 // Recursively merge `src` into `target`. Arrays are replaced, and getters/setters copied without

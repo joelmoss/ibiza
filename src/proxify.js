@@ -1,5 +1,13 @@
 import { get, isDate } from './utils.js'
-import store, { accessorDef, isTrackedFn, rawStateOf } from './store.js'
+import store, {
+  isProxy,
+  isStoreProxy,
+  isHookProxy,
+  propertyPath,
+  accessorDef,
+  isTrackedFn,
+  rawStateOf
+} from './store'
 
 export default proxify
 
@@ -28,14 +36,14 @@ function proxify(objOrPath, parentPath, onGet) {
     obj = objOrPath || store.state
   }
 
-  if (obj === null || obj.isHookProxy) return obj
+  if (obj === null || obj[isHookProxy]) return obj
 
   const proxy = new Proxy(obj, {
     // Should always return the value of the requested state path as a Store Proxy.
     get(target, prop) {
-      if (prop === 'isProxy') return true
-      if (prop === 'isStoreProxy') return false
-      if (prop === 'isHookProxy') return true
+      if (prop === isProxy) return true
+      if (prop === isStoreProxy) return false
+      if (prop === isHookProxy) return true
 
       // Even though the store state also responds to $root and $model, we reimplement them here to
       // avoid crawling through all the code in the rest of this function.
@@ -69,7 +77,7 @@ function proxify(objOrPath, parentPath, onGet) {
       }
 
       // Forward calls to URL model save().
-      if (prop === '__path' || (prop === 'save' && typeof result === 'function')) return result
+      if (prop === propertyPath || (prop === 'save' && typeof result === 'function')) return result
 
       // Forward any functions and non-own properties while allowing undefined properties, except
       // the `length` prop which needs to be tracked so we can respond to array changes.

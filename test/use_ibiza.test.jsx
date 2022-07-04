@@ -1,6 +1,7 @@
 import { render, renderHook, act, fireEvent, screen } from '@testing-library/react'
 import React, { Fragment, Suspense, useCallback, useEffect, useState } from 'react'
 import { useIbiza, store, rawStateOf } from 'ibiza'
+import { isProxy } from '../src/store'
 
 const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resolve(data), ms))
 
@@ -172,7 +173,7 @@ describe('initial state', () => {
       firstName: 'Joel',
       lastName: 'Moss'
     })
-    expect(result.current.isProxy).toBe(true)
+    expect(result.current[isProxy]).toBe(true)
     expect(iState).toHaveBeenCalledTimes(1)
   })
 
@@ -221,7 +222,7 @@ describe('initial state', () => {
       firstName: 'Joel',
       lastName: 'Moss'
     })
-    expect(result.current.isProxy).toBe(true)
+    expect(result.current[isProxy]).toBe(true)
     expect(iState).toHaveBeenCalledTimes(1)
   })
 })
@@ -231,14 +232,14 @@ describe('returns empty object by default', () => {
     const { result } = renderHook(() => useIbiza())
 
     expect(rawStateOf(result.current)).toEqual({})
-    expect(result.current.isProxy).toBe(true)
+    expect(result.current[isProxy]).toBe(true)
   })
 
   it('slice', () => {
     const { result } = renderHook(() => useIbiza('user'))
 
     expect(rawStateOf(result.current)).toEqual({})
-    expect(result.current.isProxy).toBe(true)
+    expect(result.current[isProxy]).toBe(true)
   })
 })
 
@@ -263,22 +264,22 @@ describe('nested objects are proxies', () => {
     store.state = { one: { two: { three: [{ foo: 'bar' }] } } }
     const { result } = renderHook(() => useIbiza())
 
-    expect(result.current.isProxy).toBe(true)
-    expect(result.current.one.isProxy).toBe(true)
-    expect(result.current.one.two.isProxy).toBe(true)
-    expect(result.current.one.two.three.isProxy).toBe(true)
-    expect(result.current.one.two.three[0].isProxy).toBe(true)
+    expect(result.current[isProxy]).toBe(true)
+    expect(result.current.one[isProxy]).toBe(true)
+    expect(result.current.one.two[isProxy]).toBe(true)
+    expect(result.current.one.two.three[isProxy]).toBe(true)
+    expect(result.current.one.two.three[0][isProxy]).toBe(true)
   })
 
   it('slice', () => {
     store.state = { one: { two: { three: { four: [{ foo: 'bar' }] } } } }
     const { result } = renderHook(() => useIbiza('one'))
 
-    expect(result.current.isProxy).toBe(true)
-    expect(result.current.two.isProxy).toBe(true)
-    expect(result.current.two.three.isProxy).toBe(true)
-    expect(result.current.two.three.four.isProxy).toBe(true)
-    expect(result.current.two.three.four[0].isProxy).toBe(true)
+    expect(result.current[isProxy]).toBe(true)
+    expect(result.current.two[isProxy]).toBe(true)
+    expect(result.current.two.three[isProxy]).toBe(true)
+    expect(result.current.two.three.four[isProxy]).toBe(true)
+    expect(result.current.two.three.four[0][isProxy]).toBe(true)
   })
 })
 
@@ -1804,7 +1805,7 @@ describe('slicing', () => {
       const { result } = renderHook(() => useIbiza('children.1'))
 
       expect(rawStateOf(result.current)).toEqual({ firstName: 'Elijah' })
-      expect(result.current.isProxy).toBe(true)
+      expect(result.current[isProxy]).toBe(true)
     })
 
     it('nested function', () => {
