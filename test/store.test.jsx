@@ -55,11 +55,11 @@ test('unsubscribe from changes', () => {
   expect(callback).toHaveBeenCalledTimes(1)
 })
 
-test('.__raw returns raw state', () => {
+test('.$unproxied returns raw state', () => {
   store.state = { user: { name: 'Joel' } }
 
-  expect(store.state.user.__raw).toEqual({ name: 'Joel' })
-  expect(store.state.user.__raw.isProxy).toBeUndefined()
+  expect(store.state.user.$unproxied).toEqual({ name: 'Joel' })
+  expect(store.state.user.$unproxied.isProxy).toBeUndefined()
 })
 
 describe('state mutation', () => {
