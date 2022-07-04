@@ -42,7 +42,7 @@ class IbizaStore {
   }
 
   // Returns the unproxied state.
-  get rawState() {
+  get unproxiedState() {
     return this.#state
   }
 
@@ -173,12 +173,15 @@ class IbizaStore {
       get(target, prop, receiver) {
         let path
 
+        // Private
         if (prop === isProxy) return true
         if (prop === isStoreProxy) return true
         if (prop === isHookProxy) return false
         if (prop === propertyPath) return parentPath
-        if (prop === '$unproxied')
-          return parentPath ? get($this.rawState, parentPath) : $this.rawState
+
+        // Public
+        if (prop === '$unproxiedState')
+          return parentPath ? get($this.unproxiedState, parentPath) : $this.unproxiedState
 
         // If prop === '$root', return entire store state. If parentPath is null, return undefined.
         if (prop === '$root') return parentPath === null ? undefined : $this.state
@@ -371,7 +374,7 @@ class IbizaStore {
           def.value
         }
 
-        previousValue = rawStateOf(previousValue)
+        previousValue = unproxiedStateOf(previousValue)
         if (prop === 'length' || !Object.is(previousValue, value)) {
           if (store.debug) {
             console.groupCollapsed('[ibiza] Mutated %o', path)
@@ -394,7 +397,7 @@ class IbizaStore {
             target,
             prop,
             path: buildPath(prop),
-            previousValue: rawStateOf(previousValue)
+            previousValue: unproxiedStateOf(previousValue)
           })
         }
 
@@ -418,10 +421,10 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Accepts a state Proxy and returns the raw un-proxied state.
-export function rawStateOf(state) {
+export function unproxiedStateOf(state) {
   if (!state || !state[isProxy]) return state
 
-  return state[propertyPath] ? get(store.rawState, state[propertyPath]) : store.rawState
+  return state[propertyPath] ? get(store.unproxiedState, state[propertyPath]) : store.unproxiedState
 }
 
 // Recursively merge `src` into `target`. Arrays are replaced, and getters/setters copied without

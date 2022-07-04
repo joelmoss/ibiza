@@ -2,7 +2,7 @@
 /* eslint-disable react/display-name */
 import { render, act, screen } from '@testing-library/react'
 import React from 'react'
-import { useIbiza, store } from 'ibiza'
+import { useIbiza, store, unproxiedStateOf } from 'ibiza'
 
 afterEach(() => store.reset())
 
@@ -51,15 +51,22 @@ test('unsubscribe from changes', () => {
   unlisten()
   store.state.name = 'Joel'
 
-  expect(store.rawState).toEqual({ name: 'Joel' })
+  expect(store.unproxiedState).toEqual({ name: 'Joel' })
   expect(callback).toHaveBeenCalledTimes(1)
 })
 
 test('.$unproxied returns raw state', () => {
   store.state = { user: { name: 'Joel' } }
 
-  expect(store.state.user.$unproxied).toEqual({ name: 'Joel' })
-  expect(store.state.user.$unproxied.isProxy).toBeUndefined()
+  expect(store.state.user.$unproxiedState).toEqual({ name: 'Joel' })
+  expect(store.state.user.$unproxiedState.isProxy).toBeUndefined()
+})
+
+test('unproxiedStateOf() returns raw state', () => {
+  store.state = { user: { name: 'Joel' } }
+
+  expect(unproxiedStateOf(store.state.user)).toEqual({ name: 'Joel' })
+  expect(unproxiedStateOf(store.state.user).isProxy).toBeUndefined()
 })
 
 describe('state mutation', () => {
@@ -69,7 +76,7 @@ describe('state mutation', () => {
     store.listenForChanges(cb)
     store.state = { name: 'Joel' }
 
-    expect(store.rawState).toEqual({ name: 'Joel' })
+    expect(store.unproxiedState).toEqual({ name: 'Joel' })
     expect(cb).not.toHaveBeenCalled()
   })
 
@@ -80,7 +87,7 @@ describe('state mutation', () => {
     store.listenForChanges(cb)
     store.state.name = 'Ash'
 
-    expect(store.rawState).toEqual({ name: 'Ash' })
+    expect(store.unproxiedState).toEqual({ name: 'Ash' })
     expect(cb.mock.calls).toEqual([[expect.objectContaining({ path: 'name' })]])
   })
 
@@ -91,7 +98,7 @@ describe('state mutation', () => {
     store.listenForChanges(cb)
     store.state.user.name = 'Ash'
 
-    expect(store.rawState).toEqual({ user: { name: 'Ash' } })
+    expect(store.unproxiedState).toEqual({ user: { name: 'Ash' } })
     expect(cb.mock.calls).toEqual([[expect.objectContaining({ path: 'user.name' })]])
   })
 
@@ -102,7 +109,7 @@ describe('state mutation', () => {
     store.listenForChanges(cb)
     store.state.age = 44
 
-    expect(store.rawState).toEqual({ name: 'Joel', age: 44 })
+    expect(store.unproxiedState).toEqual({ name: 'Joel', age: 44 })
     expect(cb.mock.calls).toEqual([[expect.objectContaining({ path: 'age' })]])
   })
 
@@ -113,7 +120,7 @@ describe('state mutation', () => {
     store.listenForChanges(callback)
     store.state.user = {}
 
-    expect(store.rawState).toEqual({ user: {} })
+    expect(store.unproxiedState).toEqual({ user: {} })
     expect(callback.mock.calls).toEqual([[expect.objectContaining({ path: 'user' })]])
   })
 
@@ -124,7 +131,7 @@ describe('state mutation', () => {
     store.listenForChanges(callback)
     store.state.user = { name: 'Ash', age: 23 }
 
-    expect(store.rawState).toEqual({ user: { name: 'Ash', age: 23 } })
+    expect(store.unproxiedState).toEqual({ user: { name: 'Ash', age: 23 } })
     expect(callback.mock.calls).toEqual([
       [expect.objectContaining({ path: 'user.name' })],
       [expect.objectContaining({ path: 'user.age' })]

@@ -6,7 +6,7 @@ import store, {
   propertyPath,
   accessorDef,
   isTrackedFn,
-  rawStateOf
+  unproxiedStateOf
 } from './store'
 
 export default proxify
@@ -56,7 +56,7 @@ function proxify(objOrPath, parentPath, onGet) {
       // If the target is frozen, return the raw unproxied, and frozen state.
       //
       // TODO: Ensure the reurned value is still frozen to prevent mutation!
-      if (Object.isFrozen(target)) return rawStateOf(Reflect.get(...arguments))
+      if (Object.isFrozen(target)) return unproxiedStateOf(Reflect.get(...arguments))
 
       const hasOwnProperty = Object.prototype.hasOwnProperty.call(target, prop)
 
@@ -73,7 +73,7 @@ function proxify(objOrPath, parentPath, onGet) {
       let result = Reflect.get(...arguments)
 
       if (result !== null && typeof result === 'object' && Object.isFrozen(result)) {
-        return rawStateOf(result)
+        return unproxiedStateOf(result)
       }
 
       // Forward calls to URL model save().
