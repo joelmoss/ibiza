@@ -41,21 +41,16 @@ function proxify(objOrPath, parentPath, onGet) {
   const proxy = new Proxy(obj, {
     // Should always return the value of the requested state path as a Store Proxy.
     get(target, prop) {
-      if (prop === isProxy) return true
       if (prop === isStoreProxy) return false
-      if (prop === isHookProxy) return true
+      if (prop === isProxy || prop === isHookProxy) return true
 
       // Even though the store state also responds to $root and $model, we reimplement them here to
       // avoid crawling through all the code in the rest of this function.
       if (prop === '$root') return parentPath === null ? undefined : proxify(null, null, onGet)
+      if (prop === '$model') return proxify(parentPath?.split('.')[0], null, onGet)
 
-      if (prop === '$model') {
-        return proxify(parentPath?.split('.')[0], null, onGet)
-      }
-
-      // If the target is frozen, return the raw unproxied, and frozen state.
-      //
-      // TODO: Ensure the reurned value is still frozen to prevent mutation!
+      // If the target is frozen, return the unproxied, and frozen state.
+      // TODO: Ensure the returned value is still frozen to prevent mutation!
       if (Object.isFrozen(target)) return unproxiedStateOf(Reflect.get(...arguments))
 
       const hasOwnProperty = Object.prototype.hasOwnProperty.call(target, prop)
