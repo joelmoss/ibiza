@@ -1,5 +1,6 @@
 import { renderHook } from '@testing-library/react'
 import { useIbiza, store } from 'ibiza'
+import { isProxy, isStoreProxy, isHookProxy } from '../src/store'
 
 afterEach(() => {
   store.reset()
@@ -24,9 +25,9 @@ describe('$root', () => {
 
     test('returns the state root', () => {
       expect(store.state.users.$root).toEqual(store.state)
-      expect(store.state.users.$root.isProxy).toBe(true)
-      expect(store.state.users.$root.isStoreProxy).toBe(true)
-      expect(store.state.users.$root.isHookProxy).toBe(false)
+      expect(store.state.users.$root[isProxy]).toBe(true)
+      expect(store.state.users.$root[isStoreProxy]).toBe(true)
+      expect(store.state.users.$root[isHookProxy]).toBe(false)
     })
 
     it('cannot assign to $root', () => {
@@ -47,18 +48,18 @@ describe('$root', () => {
       const { result } = renderHook(() => useIbiza('users').$root)
 
       expect(result.current).toEqual(store.state)
-      expect(result.current.isProxy).toBe(true)
-      expect(result.current.isHookProxy).toBe(true)
-      expect(result.current.isStoreProxy).toBe(false)
+      expect(result.current[isProxy]).toBe(true)
+      expect(result.current[isHookProxy]).toBe(true)
+      expect(result.current[isStoreProxy]).toBe(false)
     })
 
     test('with deep slice', () => {
       const { result } = renderHook(() => useIbiza('users.user').$root)
 
       expect(result.current).toEqual(store.state)
-      expect(result.current.isProxy).toBe(true)
-      expect(result.current.isHookProxy).toBe(true)
-      expect(result.current.isStoreProxy).toBe(false)
+      expect(result.current[isProxy]).toBe(true)
+      expect(result.current[isHookProxy]).toBe(true)
+      expect(result.current[isStoreProxy]).toBe(false)
     })
 
     it('cannot assign to $model', () => {
@@ -87,9 +88,9 @@ describe('$model', () => {
 
     test('returns the state root', () => {
       expect(store.state.users.$model).toEqual(store.state.users)
-      expect(store.state.users.$root.isProxy).toBe(true)
-      expect(store.state.users.$root.isStoreProxy).toBe(true)
-      expect(store.state.users.$root.isHookProxy).toBe(false)
+      expect(store.state.users.$root[isProxy]).toBe(true)
+      expect(store.state.users.$root[isStoreProxy]).toBe(true)
+      expect(store.state.users.$root[isHookProxy]).toBe(false)
     })
   })
 
@@ -104,18 +105,18 @@ describe('$model', () => {
       const { result } = renderHook(() => useIbiza('users').$model)
 
       expect(result.current).toEqual(store.state.users)
-      expect(result.current.isProxy).toBe(true)
-      expect(result.current.isHookProxy).toBe(true)
-      expect(result.current.isStoreProxy).toBe(false)
+      expect(result.current[isProxy]).toBe(true)
+      expect(result.current[isHookProxy]).toBe(true)
+      expect(result.current[isStoreProxy]).toBe(false)
     })
 
     test('with deep slice', () => {
       const { result } = renderHook(() => useIbiza('users.user').$model)
 
       expect(result.current).toEqual(store.state.users)
-      expect(result.current.isProxy).toBe(true)
-      expect(result.current.isHookProxy).toBe(true)
-      expect(result.current.isStoreProxy).toBe(false)
+      expect(result.current[isProxy]).toBe(true)
+      expect(result.current[isHookProxy]).toBe(true)
+      expect(result.current[isStoreProxy]).toBe(false)
     })
   })
 })

@@ -1,9 +1,10 @@
-import { waitFor, render, act, fireEvent, screen } from '@testing-library/react'
+import { render, act, fireEvent, screen } from '@testing-library/react'
 import React, { Fragment, Suspense, useState } from 'react'
 import { rest } from 'msw'
 import { setupServer } from 'msw/node'
 import { ErrorBoundary } from 'react-error-boundary'
 import { useIbiza, query, accessor, createModel, store } from 'ibiza'
+import { isProxy } from '../src/store'
 
 const server = setupServer(
   rest.get('/post', async (req, res, ctx) => {
@@ -361,29 +362,6 @@ it('will refetch if store.fetches entry does not exist', async () => {
 
   await screen.findByText('Joel Moss')
   expect(fetchSpy).toHaveBeenCalledTimes(2)
-})
-
-test('.__fetcher', async () => {
-  function User() {
-    const user = useIbiza('/user')
-    return <div>{user.name}</div>
-  }
-  const App = () => {
-    return (
-      <Suspense fallback={<div>fallback</div>}>
-        <User />
-      </Suspense>
-    )
-  }
-
-  render(<App />)
-
-  await act(() => new Promise(res => setTimeout(res, 150)))
-
-  expect(store.state['/user'].__fetcher).toEqual({
-    status: 'success',
-    response: { name: 'Joel Moss' }
-  })
 })
 
 it.skip('refetch should rerender only on changed props', async () => {
@@ -1026,7 +1004,7 @@ describe('query()', () => {
 
     screen.getByText('fallback')
     await screen.findByText('Joel Moss')
-    expect(store.state.user.isProxy).toBe(true)
+    expect(store.state.user[isProxy]).toBe(true)
   })
 
   it('allows mutating', async () => {
