@@ -1,6 +1,6 @@
 import { render, renderHook, act, fireEvent, screen } from '@testing-library/react'
 import React, { Fragment, Suspense, useCallback, useEffect, useState } from 'react'
-import { useIbiza, store, rawStateOf } from 'ibiza'
+import { useIbiza, store, unproxiedStateOf } from 'ibiza'
 import { isProxy } from '../src/store'
 
 const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resolve(data), ms))
@@ -14,8 +14,8 @@ describe('initial state', () => {
   it('can pass slice', () => {
     const { result } = renderHook(() => useIbiza('user.child', { name: 'Joel' }))
 
-    expect(rawStateOf(result.current)).toEqual({ name: 'Joel' })
-    expect(store.rawState).toMatchSnapshot()
+    expect(unproxiedStateOf(result.current)).toEqual({ name: 'Joel' })
+    expect(store.unproxiedState).toMatchSnapshot()
   })
 
   it('merges initial state from different components', () => {
@@ -46,7 +46,7 @@ describe('initial state', () => {
       </>
     )
 
-    expect(store.rawState).toMatchSnapshot()
+    expect(store.unproxiedState).toMatchSnapshot()
   })
 
   it('merges initial state only once', async () => {
@@ -168,7 +168,7 @@ describe('initial state', () => {
     })
     const { result } = renderHook(() => useIbiza(iState))
 
-    expect(rawStateOf(result.current)).toEqual({
+    expect(unproxiedStateOf(result.current)).toEqual({
       name: 'Joel Moss',
       firstName: 'Joel',
       lastName: 'Moss'
@@ -203,7 +203,7 @@ describe('initial state', () => {
     store.state = { user: { name: 'Joel Moss' } }
     const { result } = renderHook(() => useIbiza('user', { age: 45 }))
 
-    expect(rawStateOf(result.current)).toEqual({
+    expect(unproxiedStateOf(result.current)).toEqual({
       name: 'Joel Moss',
       age: 45
     })
@@ -217,7 +217,7 @@ describe('initial state', () => {
     })
     const { result } = renderHook(() => useIbiza('user', iState))
 
-    expect(rawStateOf(result.current)).toEqual({
+    expect(unproxiedStateOf(result.current)).toEqual({
       name: 'Joel Moss',
       firstName: 'Joel',
       lastName: 'Moss'
@@ -231,14 +231,14 @@ describe('returns empty object by default', () => {
   it('basic', () => {
     const { result } = renderHook(() => useIbiza())
 
-    expect(rawStateOf(result.current)).toEqual({})
+    expect(unproxiedStateOf(result.current)).toEqual({})
     expect(result.current[isProxy]).toBe(true)
   })
 
   it('slice', () => {
     const { result } = renderHook(() => useIbiza('user'))
 
-    expect(rawStateOf(result.current)).toEqual({})
+    expect(unproxiedStateOf(result.current)).toEqual({})
     expect(result.current[isProxy]).toBe(true)
   })
 })
@@ -248,14 +248,14 @@ describe('returns store state', () => {
     store.state = { count: 0 }
     const { result } = renderHook(() => useIbiza())
 
-    expect(rawStateOf(result.current)).toEqual({ count: 0 })
+    expect(unproxiedStateOf(result.current)).toEqual({ count: 0 })
   })
 
   it('slice', () => {
     store.state = { user: { count: 0 } }
     const { result } = renderHook(() => useIbiza('user'))
 
-    expect(rawStateOf(result.current)).toEqual({ count: 0 })
+    expect(unproxiedStateOf(result.current)).toEqual({ count: 0 })
   })
 })
 
@@ -292,7 +292,7 @@ describe('store.state == hook state', () => {
       ++result.current.count
     })
 
-    expect(store.rawState).toEqual(rawStateOf(result.current))
+    expect(store.unproxiedState).toEqual(unproxiedStateOf(result.current))
   })
 
   it('slice', () => {
@@ -303,7 +303,7 @@ describe('store.state == hook state', () => {
       ++result.current.count
     })
 
-    expect(store.rawState).toEqual({ user: rawStateOf(result.current) })
+    expect(store.unproxiedState).toEqual({ user: unproxiedStateOf(result.current) })
   })
 })
 
@@ -387,7 +387,7 @@ describe('mutating', () => {
         result.current.nested.count = 1
       })
 
-      expect(store.rawState).toEqual({ count: 0, nested: { count: 1 } })
+      expect(store.unproxiedState).toEqual({ count: 0, nested: { count: 1 } })
     })
 
     it('slice', () => {
@@ -398,7 +398,7 @@ describe('mutating', () => {
         result.current.nested.count = 1
       })
 
-      expect(store.rawState).toEqual({
+      expect(store.unproxiedState).toEqual({
         user: { count: 0, nested: { count: 1 } }
       })
     })
@@ -414,7 +414,7 @@ describe('mutating', () => {
         result.current.age = undefined
       })
 
-      expect(store.rawState).toEqual({ name: null, age: undefined })
+      expect(store.unproxiedState).toEqual({ name: null, age: undefined })
     })
 
     it('slice', () => {
@@ -426,7 +426,7 @@ describe('mutating', () => {
         result.current.age = undefined
       })
 
-      expect(store.rawState).toEqual({ user: { name: null, age: undefined } })
+      expect(store.unproxiedState).toEqual({ user: { name: null, age: undefined } })
     })
   })
 
@@ -1804,7 +1804,7 @@ describe('slicing', () => {
       }
       const { result } = renderHook(() => useIbiza('children.1'))
 
-      expect(rawStateOf(result.current)).toEqual({ firstName: 'Elijah' })
+      expect(unproxiedStateOf(result.current)).toEqual({ firstName: 'Elijah' })
       expect(result.current[isProxy]).toBe(true)
     })
 

@@ -111,9 +111,9 @@
       "limit": "1 s"
     },
     {
-      "name": "rawStateOf",
+      "name": "unproxiedStateOf",
       "path": "./src/index.js",
-      "import": "{ rawStateOf }",
+      "import": "{ unproxiedStateOf }",
       "limit": "1 s"
     },
     {
