@@ -1,5 +1,5 @@
 import { get, isDate } from './utils.js'
-import store, { accessorDef, rawStateOf } from './store.js'
+import store, { accessorDef, isTrackedFn, rawStateOf } from './store.js'
 
 export default proxify
 
@@ -76,9 +76,15 @@ function proxify(objOrPath, parentPath, onGet) {
 
       // Functions are bound to the local state. And the global state is passed as the first
       // argument. Note that used state is not tracked within functions. This avoids component
-      // re-rendering when state changes that is used by a function. The function will always use
+      // re-rendering when state changes, that is used by a function. The function will always use
       // the latest state, so no need to track the state that it uses.
+      //
+      // If you want to track the state usage inside a function, use the trackFunction helper.
       if (typeof result === 'function' && hasOwnProperty) {
+        if (result[isTrackedFn]) {
+          return result.bind(proxify(target, parentPath, onGet), proxify(null, null, onGet))
+        }
+
         return result.bind(proxify(target, parentPath), proxify(null, null))
       }
 
