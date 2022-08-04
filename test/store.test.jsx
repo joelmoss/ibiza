@@ -2,7 +2,7 @@
 /* eslint-disable react/display-name */
 import { render, act, screen } from '@testing-library/react'
 import React from 'react'
-import { useIbiza, store, unproxiedStateOf } from 'ibiza'
+import { useIbiza, store } from 'ibiza'
 
 afterEach(() => store.reset())
 
@@ -53,20 +53,6 @@ test('unsubscribe from changes', () => {
 
   expect(store.unproxiedState).toEqual({ name: 'Joel' })
   expect(callback).toHaveBeenCalledTimes(1)
-})
-
-test('.$unproxied returns raw state', () => {
-  store.state = { user: { name: 'Joel' } }
-
-  expect(store.state.user.$unproxiedState).toEqual({ name: 'Joel' })
-  expect(store.state.user.$unproxiedState.isProxy).toBeUndefined()
-})
-
-test('unproxiedStateOf() returns raw state', () => {
-  store.state = { user: { name: 'Joel' } }
-
-  expect(unproxiedStateOf(store.state.user)).toEqual({ name: 'Joel' })
-  expect(unproxiedStateOf(store.state.user).isProxy).toBeUndefined()
 })
 
 describe('state mutation', () => {
