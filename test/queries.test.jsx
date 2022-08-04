@@ -3,6 +3,7 @@ import React, { Fragment, Suspense, useState } from 'react'
 import { rest } from 'msw'
 import { setupServer } from 'msw/node'
 import { ErrorBoundary } from 'react-error-boundary'
+
 import { useIbiza, query, accessor, createModel, store } from 'ibiza'
 import { isProxy } from '../src/store'
 
