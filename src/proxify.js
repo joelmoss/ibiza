@@ -44,6 +44,10 @@ function proxify(objOrPath, parentPath, onGet) {
       if (prop === isStoreProxy) return false
       if (prop === isProxy || prop === isHookProxy) return true
 
+      if (prop === '$unproxiedState') {
+        return unproxiedStateOf(Reflect.get(...arguments))
+      }
+
       // Even though the store state also responds to $root and $model, we reimplement them here to
       // avoid crawling through all the code in the rest of this function.
       if (prop === '$root') return parentPath === null ? undefined : proxify(null, null, onGet)
