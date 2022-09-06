@@ -1,11 +1,17 @@
 /* global process */
 
-import { useRef } from 'react'
+import * as React from 'react'
+const { useId, useRef } = React
+
+const useIdShim = () => {
+  const id = useId?.()
+  return id ? ` (${id})` : ''
+}
 
 export default () => {
+  const id = useIdShim()
   const ref = useRef()
   if (process.env.NODE_ENV !== 'production') {
-    // eslint-disable-next-line unicorn/error-message
     const name = new Error().stack.split('\n').find(ln => {
       return /^(?!Object)[A-Z]./.test(ln.trim().split(' ')[1])
     })
@@ -13,5 +19,5 @@ export default () => {
     ref.current = name?.trim().split(' ')[1]
   }
 
-  return ref
+  return `${ref.current}${id}`
 }

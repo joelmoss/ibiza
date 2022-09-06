@@ -10,7 +10,7 @@ Object {
 }
 `;
 
-exports[`initial state merges 1`] = `
+exports[`initial state merges initial state from different components 1`] = `
 Object {
   "children": Array [],
   "count": 0,

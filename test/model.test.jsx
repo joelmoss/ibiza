@@ -1,28 +1,13 @@
 import { render, fireEvent, act, screen } from '@testing-library/react'
-import { renderHook, act as hookAct } from '@testing-library/react-hooks'
-import React, { Suspense } from 'react'
-import { rest } from 'msw'
-import { setupServer } from 'msw/node'
+import React from 'react'
 import { store, freeze, createModel, createContextModel, IbizaProvider } from 'ibiza'
 
-const server = setupServer(
-  rest.get('/post', async (req, res, ctx) => {
-    return res(ctx.delay(100), ctx.json({ title: 'My First Post' }))
-  }),
-  rest.get('/user', async (req, res, ctx) => {
-    return res(ctx.delay(100), ctx.json({ name: 'Joel Moss' }))
-  })
-)
-
-beforeAll(() => server.listen())
 afterEach(() => {
   store.reset()
   store.debug = false
 
   jest.clearAllMocks()
-  server.resetHandlers()
 })
-afterAll(() => server.close())
 
 it('merges initial state', () => {
   const usePost = createModel('post', (_, props) => ({
@@ -30,9 +15,14 @@ it('merges initial state', () => {
     ...props
   }))
 
-  const { result } = renderHook(() => usePost({ title: 'Post#2' }))
+  const App = () => {
+    const state = usePost({ title: 'Post#2' })
+    return <h1>state.title=[{state.title}]</h1>
+  }
 
-  expect(result.current.title).toBe('Post#2')
+  render(<App />)
+
+  screen.getByText('state.title=[Post#2]')
 })
 
 it('merges initial state only once', async () => {
@@ -60,9 +50,14 @@ it('gets attribute', () => {
     title: 'Post#1'
   })
 
-  const { result } = renderHook(() => usePost())
+  const App = () => {
+    const state = usePost()
+    return <h1>state.title=[{state.title}]</h1>
+  }
 
-  expect(result.current.title).toBe('Post#1')
+  render(<App />)
+
+  screen.getByText('state.title=[Post#1]')
 })
 
 it('sets attribute', () => {
@@ -70,15 +65,20 @@ it('sets attribute', () => {
     title: 'Post#1'
   })
 
-  const { result } = renderHook(() => usePost())
+  const App = () => {
+    const state = usePost()
+    return <h1>state.title=[{state.title}]</h1>
+  }
 
-  expect(result.current.title).toBe('Post#1')
+  render(<App />)
 
-  hookAct(() => {
-    result.current.title = 'Post#2'
+  screen.getByText('state.title=[Post#1]')
+
+  act(() => {
+    store.state.post.title = 'Post#2'
   })
 
-  expect(result.current.title).toBe('Post#2')
+  screen.getByText('state.title=[Post#2]')
 })
 
 it('can pass slice', async () => {
@@ -108,14 +108,6 @@ test('initial state function should be called once', async () => {
   const meFn = jest.fn(() => ({ me: 'Joel' }))
   const useMe = createModel('me', meFn)
 
-  const App = () => {
-    return (
-      <>
-        <Child1 />
-        <Child2 />
-      </>
-    )
-  }
   const Child1 = () => {
     const state = useMe()
     return <h2>Child1.me is [{state.me}]</h2>
@@ -125,9 +117,14 @@ test('initial state function should be called once', async () => {
     return <h2>Child2.me is [{state.me}]</h2>
   }
 
-  render(<App />)
+  render(
+    <>
+      <Child1 />
+      <Child2 />
+    </>
+  )
 
-  expect(meFn).toBeCalledTimes(1)
+  expect(meFn).toHaveBeenCalledTimes(1)
   screen.getByText('Child1.me is [Joel]')
   screen.getByText('Child2.me is [Joel]')
 })
@@ -194,7 +191,7 @@ describe('re-renders on used state', () => {
 
     render(<App />)
 
-    expect(meFn).toBeCalledTimes(1)
+    expect(meFn).toHaveBeenCalledTimes(1)
     screen.getByText('Child1.count1 is []')
     screen.getByText('Child2.count2 is []')
 
@@ -208,103 +205,6 @@ describe('re-renders on used state', () => {
   })
 })
 
-describe('URL backed state', () => {
-  it('fetches from the server', async () => {
-    const useUser = createModel('/user')
-    const fetchSpy = jest.spyOn(store, 'fetchFn')
-
-    function User1() {
-      const user = useUser()
-      return <div>User1=[{user.name}]</div>
-    }
-    function User2() {
-      const user = useUser()
-      return <div>User2=[{user.name}]</div>
-    }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <User1 />
-          <User2 />
-        </Suspense>
-      )
-    }
-
-    const { container } = render(<App />)
-
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-    await act(() => new Promise(res => setTimeout(res, 150)))
-    expect(container.textContent).toMatchInlineSnapshot('"User1=[Joel Moss]User2=[Joel Moss]"')
-    expect(fetchSpy).toBeCalledTimes(1)
-  })
-
-  it('accepts a custom fetch function option', async () => {
-    const customFetch = jest.fn(store.fetchFn)
-    const useUser = createModel('/user', {}, { fetcher: customFetch })
-
-    function User1() {
-      const user = useUser()
-      return <div>User1=[{user.name}]</div>
-    }
-    function User2() {
-      const user = useUser()
-      return <div>User2=[{user.name}]</div>
-    }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <User1 />
-          <User2 />
-        </Suspense>
-      )
-    }
-
-    const { container } = render(<App />)
-
-    expect(container.textContent).toMatchInlineSnapshot('"fallback"')
-    await act(() => new Promise(res => setTimeout(res, 150)))
-    expect(container.textContent).toMatchInlineSnapshot('"User1=[Joel Moss]User2=[Joel Moss]"')
-    expect(customFetch).toBeCalledTimes(1)
-  })
-
-  it('model definition accepts server response', async () => {
-    const useUser = createModel('/user', data => {
-      const [firstName, lastName] = data.name.split(' ')
-
-      return {
-        firstName,
-        lastName
-      }
-    })
-    const fetchSpy = jest.spyOn(store, 'fetchFn')
-
-    function User() {
-      const user = useUser()
-      return (
-        <div>
-          {user.firstName} {user.lastName}
-        </div>
-      )
-    }
-    const App = () => {
-      return (
-        <Suspense fallback={<div>fallback</div>}>
-          <User />
-        </Suspense>
-      )
-    }
-
-    render(<App />)
-
-    screen.getByText('fallback')
-
-    await act(() => new Promise(res => setTimeout(res, 150)))
-
-    await screen.findByText('Joel Moss')
-    expect(fetchSpy).toBeCalledTimes(1)
-  })
-})
-
 describe('freezing', () => {
   it('can read', () => {
     const usePost = createModel('post', {
@@ -312,9 +212,14 @@ describe('freezing', () => {
       user: freeze({ firstName: 'Joel' })
     })
 
-    const { result } = renderHook(() => usePost())
+    const App = () => {
+      const state = usePost()
+      return <h1>state.user.firstName=[{state.user.firstName}]</h1>
+    }
 
-    expect(result.current.user.firstName).toBe('Joel')
+    render(<App />)
+
+    screen.getByText('state.user.firstName=[Joel]')
   })
 
   it('throws on write', () => {
@@ -323,15 +228,22 @@ describe('freezing', () => {
       user: freeze({ firstName: 'Joel' })
     })
 
-    const { result } = renderHook(() => usePost())
+    const App = () => {
+      const state = usePost()
+      return <h1>state.user.firstName=[{state.user.firstName}]</h1>
+    }
 
-    hookAct(() => {
+    render(<App />)
+
+    screen.getByText('state.user.firstName=[Joel]')
+
+    act(() => {
       expect(() => {
-        result.current.user.firstName = 'Ash'
+        store.state.post.user.firstName = 'Ash'
       }).toThrow()
     })
 
-    expect(result.current.user.firstName).toBe('Joel')
+    screen.getByText('state.user.firstName=[Joel]')
   })
 
   it('throws on deep write', () => {
@@ -340,20 +252,27 @@ describe('freezing', () => {
       user: freeze({ deep: { name: { firstName: 'Joel' } } })
     })
 
-    const { result } = renderHook(() => usePost())
+    const App = () => {
+      const state = usePost()
+      return <h1>state.user.deep.name.firstName=[{state.user.deep.name.firstName}]</h1>
+    }
 
-    expect(Object.isFrozen(result.current.user)).toBeTruthy()
-    expect(Object.isFrozen(result.current.user.deep)).toBeTruthy()
-    expect(Object.isFrozen(result.current.user.deep.name)).toBeTruthy()
-    expect(Object.isFrozen(result.current.user.deep.name.firstName)).toBeTruthy()
+    render(<App />)
 
-    hookAct(() => {
+    screen.getByText('state.user.deep.name.firstName=[Joel]')
+
+    expect(Object.isFrozen(store.state.post.user)).toBeTruthy()
+    expect(Object.isFrozen(store.state.post.user.deep)).toBeTruthy()
+    expect(Object.isFrozen(store.state.post.user.deep.name)).toBeTruthy()
+    expect(Object.isFrozen(store.state.post.user.deep.name.firstName)).toBeTruthy()
+
+    act(() => {
       expect(() => {
-        result.current.user.deep.name.firstName = 'Ash'
+        store.state.user.deep.name.firstName = 'Ash'
       }).toThrow()
     })
 
-    expect(result.current.user.deep.name.firstName).toBe('Joel')
+    screen.getByText('state.user.deep.name.firstName=[Joel]')
   })
 })
 
@@ -368,20 +287,17 @@ describe('createContextModel', () => {
       const post = usePost({ title })
       return <h1>{post.title}</h1>
     }
-    const App = () => {
-      return (
-        <>
-          <IbizaProvider>
-            <Post title="Post#1" />
-          </IbizaProvider>
-          <IbizaProvider>
-            <Post title="Post#2" />
-          </IbizaProvider>
-        </>
-      )
-    }
 
-    render(<App />)
+    render(
+      <>
+        <IbizaProvider>
+          <Post title="Post#1" />
+        </IbizaProvider>
+        <IbizaProvider>
+          <Post title="Post#2" />
+        </IbizaProvider>
+      </>
+    )
 
     screen.getByText('Post#1')
     screen.getByText('Post#2')
@@ -397,15 +313,12 @@ describe('createContextModel', () => {
       const post = usePost({ title: 'Post#2' })
       return <h1>{post.title}</h1>
     }
-    const App = () => {
-      return (
-        <IbizaProvider>
-          <Post />
-        </IbizaProvider>
-      )
-    }
 
-    render(<App />)
+    render(
+      <IbizaProvider>
+        <Post />
+      </IbizaProvider>
+    )
 
     screen.getByText('Post#2')
   })
