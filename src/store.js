@@ -373,7 +373,7 @@ class IbizaStore {
             def.value = value
           }
 
-          def.value
+          value = def.value
         }
 
         previousValue = unproxiedStateOf(previousValue)

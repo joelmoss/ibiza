@@ -126,9 +126,11 @@ describe('accessor()', () => {
     }
     store.state = { user: accessor(accessorOptions) }
 
+    let renderCount = 0
     const onSetSpy = jest.spyOn(accessorOptions, 'onSet')
 
     function App() {
+      renderCount++
       const model = useIbiza()
       return <div>user=[{model.user}]</div>
     }
@@ -137,11 +139,19 @@ describe('accessor()', () => {
 
     screen.getByText('user=[Joel]')
     expect(onSetSpy).toHaveBeenCalledTimes(0)
+    expect(renderCount).toBe(1)
 
     act(() => void (store.state.user = 'Ash'))
 
     screen.getByText('user=[Ashley]')
     expect(onSetSpy).toHaveBeenCalledTimes(1)
+    expect(renderCount).toBe(2)
+
+    act(() => void (store.state.user = 'Ash'))
+
+    screen.getByText('user=[Ashley]')
+    expect(onSetSpy).toHaveBeenCalledTimes(2)
+    expect(renderCount).toBe(2)
   })
 
   it('can access on store state', async () => {
