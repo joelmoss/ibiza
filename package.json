@@ -134,7 +134,7 @@
     "react": ">=17"
   },
   "devDependencies": {
-    "@size-limit/preset-big-lib": "^7.0.1",
+    "@size-limit/preset-big-lib": "^8.1",
     "@swc/core": "^1.2.144",
     "@swc/jest": "^0.2.17",
     "@testing-library/dom": "^8.14.0",
@@ -144,23 +144,23 @@
     "cross-fetch": "^3.1.4",
     "eslint": "^8.18.0",
     "eslint-config-prettier": "^8.5.0",
-    "eslint-plugin-jest": "^26.5.3",
+    "eslint-plugin-jest": "^27.0",
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-react": "^7.30.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-testing-library": "^5.5.1",
     "fetch-mock-jest": "^1.5.1",
     "ibiza": "link:./ibiza",
-    "jest": "^28.1.0",
-    "jest-environment-jsdom": "^28.1.0",
+    "jest": "^29.1",
+    "jest-environment-jsdom": "^29.1.0",
     "microbundle": "^0.15.0",
-    "msw": "^0.42",
+    "msw": "^0.47",
     "prettier": "^2.7.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-error-boundary": "^3.1.4",
     "rimraf": "^3.0.2",
-    "size-limit": "^7.0.0"
+    "size-limit": "^8.1.0"
   },
   "dependencies": {
     "fast-equals": "^4.0.0",

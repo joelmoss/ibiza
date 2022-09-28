@@ -1,9 +1,9 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`initial state can pass slice 1`] = `
-Object {
-  "user": Object {
-    "child": Object {
+{
+  "user": {
+    "child": {
       "name": "Joel",
     },
   },
@@ -11,12 +11,12 @@ Object {
 `;
 
 exports[`initial state merges initial state from different components 1`] = `
-Object {
-  "children": Array [],
+{
+  "children": [],
   "count": 0,
   "count1": 0,
   "foo": "bar",
-  "name": Object {
+  "name": {
     "firstName": "Ash",
     "lastName": "Moss",
   },
