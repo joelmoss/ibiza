@@ -164,7 +164,6 @@
   },
   "dependencies": {
     "fast-equals": "^4.0.0",
-    "micro-memoize": "^4.0.9",
-    "use-sync-external-store": "^1.2.0"
+    "micro-memoize": "^4.0.9"
   }
 }

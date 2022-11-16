@@ -65,6 +65,7 @@ export function trackFunction(fn) {
   return fn
 }
 
+// Freeze the given `object`. Values can be read from, but not written to (immutable).
 export function freeze(object) {
   // When already frozen, we assume its children are frozen (for better performance).
   // This should be true if you always use `simpleDeepFreeze` to freeze objects,
