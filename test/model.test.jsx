@@ -1,11 +1,9 @@
 import { render, fireEvent, act, screen } from '@testing-library/react'
 import React from 'react'
-import { store, freeze, createModel, createContextModel, IbizaProvider } from 'ibiza'
+import { useIbiza, store, freeze, createModel, createContextModel, IbizaProvider } from 'ibiza'
 
 afterEach(() => {
   store.reset()
-  store.debug = false
-
   jest.clearAllMocks()
 })
 

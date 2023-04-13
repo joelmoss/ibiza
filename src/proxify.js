@@ -75,8 +75,8 @@ function proxify(objOrPath, parentPath, onGet) {
         return unproxiedStateOf(result)
       }
 
-      // Forward calls to URL model save().
-      if (prop === propertyPath || (prop === 'save' && typeof result === 'function')) return result
+      // Forward calls to URL model $save().
+      if (prop === propertyPath || (prop === '$save' && typeof result === 'function')) return result
 
       // Forward any functions and non-own properties while allowing undefined properties, except
       // the `length` prop which needs to be tracked so we can respond to array changes.

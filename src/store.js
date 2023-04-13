@@ -202,8 +202,8 @@ class IbizaStore {
         // Return the current model (top level ancestor).
         if (prop === '$model') return get(store.state, parentPath?.split('.')[0])
 
-        // Return save function if we are in a URL model.
-        if (prop === 'save') {
+        // Return $save function if we are in a URL model.
+        if (prop === '$save') {
           path = buildPath(prop)
 
           if (path.indexOf('/') === 0) {
@@ -222,7 +222,7 @@ class IbizaStore {
           }
         }
 
-        if (prop === 'refetch') {
+        if (prop === '$refetch') {
           const path = buildPath(prop)
 
           if (path.indexOf('/') === 0) {

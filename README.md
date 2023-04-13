@@ -370,15 +370,15 @@ const App = () => {
 
 You can safely mutate your model, as all mutations will remain local.
 
-You can write your model state back to the server. It the server responds with JSON, the model will
-be updated with that response.
+You can write your model state back to the server using `$save()`. It the server responds with JSON,
+the model will be updated with that response.
 
 ```jsx
 const App = () => {
   const user = useIbiza('/user')
 
   const renameUser = async () => {
-    await user.save({ body: { name: 'Bob' } })
+    await user.$save({ body: { name: 'Bob' } })
   }
 
   return (

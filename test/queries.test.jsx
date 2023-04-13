@@ -409,7 +409,7 @@ it.skip('refetch should rerender only on changed props', async () => {
   expect(renderCountAge).toBe(2)
 
   act(() => {
-    store.state['/user_will_change'].refetch()
+    store.state['/user_will_change'].$refetch()
   })
 
   await screen.findByText('name=[Ash Moss]')
@@ -444,7 +444,7 @@ it('can get URL prop from a getter', async () => {
   expect(fetchSpy).toHaveBeenCalledTimes(1)
 })
 
-describe('.refetch', () => {
+describe('.$refetch', () => {
   test('with URL prop', async () => {
     const fetchSpy = jest.spyOn(store, 'fetchFn')
 
@@ -454,7 +454,7 @@ describe('.refetch', () => {
         <>
           <div>{user.name}</div>
           <button onClick={() => (user.name = 'Ash Moss')}>click</button>
-          <button onClick={() => user.refetch()}>refetch</button>
+          <button onClick={() => user.$refetch()}>refetch</button>
         </>
       )
     }
@@ -498,7 +498,7 @@ describe('.refetch', () => {
         <>
           <div>{user.name}</div>
           <button onClick={() => (user.name = 'Ash Moss')}>click</button>
-          <button onClick={() => user.refetch()}>refetch</button>
+          <button onClick={() => user.$refetch()}>refetch</button>
         </>
       )
     }
@@ -531,7 +531,7 @@ describe('.refetch', () => {
   })
 })
 
-describe('.save', () => {
+describe('.$save', () => {
   it.skip('with query() helper', async () => {
     const fetchSpy = jest.spyOn(store, 'fetchFn')
     // store.debug = true
@@ -544,7 +544,7 @@ describe('.save', () => {
       return (
         <>
           <div>user.name=[{user.name}]</div>
-          <button onClick={() => user.save()}>save</button>
+          <button onClick={() => user.$save()}>save</button>
         </>
       )
     }
@@ -582,7 +582,7 @@ describe('.save', () => {
       return (
         <>
           <div>user.name=[{user.name}]</div>
-          <button onClick={() => user.save()}>save</button>
+          <button onClick={() => user.$save()}>save</button>
         </>
       )
     }
@@ -618,7 +618,7 @@ describe('.save', () => {
       return (
         <>
           <div>user.name=[{user.name}]</div>
-          <button onClick={() => user.save()}>save</button>
+          <button onClick={() => user.$save()}>save</button>
         </>
       )
     }
@@ -646,7 +646,7 @@ describe('.save', () => {
       const user = useIbiza('/user_with_404_on_save')
       const save = async () => {
         try {
-          await user.save()
+          await user.$save()
         } catch (error) {
           setError(error.message)
         }
