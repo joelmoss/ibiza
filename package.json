@@ -17,6 +17,7 @@
     "state",
     "proxy"
   ],
+  "packageManager": "pnpm@8.2.0",
   "files": [
     "dist/**"
   ],
@@ -131,7 +132,7 @@
     "arrowParens": "avoid"
   },
   "peerDependencies": {
-    "react": ">=17"
+    "react": ">=18"
   },
   "devDependencies": {
     "@size-limit/preset-big-lib": "^8.2.4",
