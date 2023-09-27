@@ -3,7 +3,20 @@ import React, { Fragment, Suspense, useCallback, useEffect, useState } from 'rea
 import { useIbiza, store, unproxiedStateOf } from 'ibiza'
 import { isProxy } from '../src/store'
 
-const resolveAfter = (data, ms) => new Promise(resolve => setTimeout(() => resolve(data), ms))
+const resolveAfter = (data, ms, cb) =>
+  new Promise(resolve =>
+    setTimeout(() => {
+      cb?.()
+      resolve(data)
+    }, ms)
+  )
+const rejectAfter = (data, ms, cb) =>
+  new Promise((_, reject) =>
+    setTimeout(() => {
+      cb?.()
+      reject()
+    }, ms)
+  )
 
 afterEach(() => {
   store.reset()
@@ -1640,27 +1653,50 @@ test('getter/setter with internal var', async () => {
   expect(renderCount).toBe(2)
 })
 
-test.skip('async getter', async () => {
-  const fetchSpy = jest.spyOn(store, 'fetchFn')
-  const User = () => {
-    const state = useIbiza({
-      get user() {
-        return store.fetchFn('/user')
-      }
-    })
+describe('promises', () => {
+  test('return promise from getter', async () => {
+    const callback = jest.fn(() => {})
+    const User = () => {
+      const state = useIbiza({
+        get user() {
+          return resolveAfter({ name: 'Joel Moss' }, 100, callback)
+        }
+      })
 
-    return <h1>Name is {state.user.name}</h1>
-  }
+      return <h1>Name is {state.user.name}</h1>
+    }
 
-  render(
-    <Suspense fallback={<div>fallback</div>}>
-      <User />
-    </Suspense>
-  )
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+      </Suspense>
+    )
 
-  screen.getByText('fallback')
-  await screen.findByText('Name is Joel Moss')
-  expect(fetchSpy).toHaveBeenCalledTimes(1)
+    screen.getByText('fallback')
+    await screen.findByText('Name is Joel Moss')
+    expect(callback).toHaveBeenCalledTimes(1)
+  })
+
+  test('return promise from property', async () => {
+    const callback = jest.fn(() => {})
+    const User = () => {
+      const state = useIbiza({
+        user: resolveAfter({ name: 'Joel Moss' }, 100, callback)
+      })
+
+      return <h1>Name is {state.user.name}</h1>
+    }
+
+    render(
+      <Suspense fallback={<div>fallback</div>}>
+        <User />
+      </Suspense>
+    )
+
+    screen.getByText('fallback')
+    await screen.findByText('Name is Joel Moss')
+    expect(callback).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('slicing', () => {

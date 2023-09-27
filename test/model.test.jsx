@@ -1,6 +1,6 @@
 import { render, fireEvent, act, screen } from '@testing-library/react'
 import React from 'react'
-import { useIbiza, store, freeze, createModel, createContextModel, IbizaProvider } from 'ibiza'
+import { store, freeze, createModel, createContextModel, IbizaProvider } from 'ibiza'
 
 afterEach(() => {
   store.reset()

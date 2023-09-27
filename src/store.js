@@ -17,6 +17,7 @@ class IbizaStore {
   debug = process.env.NODE_ENV === 'development'
 
   fetches = {}
+  promises = {}
   modelInitializers = {}
   modelOptions = {}
 
@@ -81,6 +82,7 @@ class IbizaStore {
     this.#setListeners = new Set()
     this.#accessors = new Map()
     this.fetches = {}
+    this.promises = {}
     this.modelInitializers = {}
     this.modelOptions = {}
     this.debug = process.env.NODE_ENV === 'development'
@@ -314,6 +316,32 @@ class IbizaStore {
             // $this.state[url] = urlResult
             result = get(urlResult, urlPath)
           }
+        }
+
+        if (result?.then !== undefined) {
+          if (!(path in $this.promises)) {
+            $this.debug && console.debug('[Ibiza] Promise %o', result)
+
+            $this.promises[path] = result
+              .then(response => {
+                $this.promises[path].response = response
+              })
+              .catch(error => {
+                $this.promises[path].error = error
+              })
+          }
+
+          const promise = $this.promises[path]
+
+          if (Object.prototype.hasOwnProperty.call(promise, 'error')) {
+            throw promise.error
+          }
+
+          if (Object.prototype.hasOwnProperty.call(promise, 'response')) {
+            return promise.response
+          }
+
+          throw promise
         }
 
         // If result is an Object, not null and not a Date, it must be a nested object, so proxify

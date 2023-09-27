@@ -351,6 +351,36 @@ const App = () => {
 }
 ```
 
+You can also return a Promise from getters and properties, and the component will suspend until the
+Promise resolves.
+
+```javascript
+export default createModel('user', {
+  name: 'Joel',
+
+  get father() {
+    return fetchFather() // Returns a Promise
+  },
+
+  mother: fetchMother() // Returns a Promise
+})
+```
+
+```jsx
+import useModel from './user_model'
+
+const App = () => {
+  const user = useModel()
+
+  return (
+    <>
+      <div>Hello, my father is {user.father}</div>
+      <div>Hello, my mother is {user.mother}</div>
+    </>
+  )
+}
+```
+
 ### URL Models
 
 Because reading and writing to/from the server is so common, Ibiza has support to make this easy
