@@ -367,23 +367,26 @@ class IbizaStore {
         }
 
         const path = buildPath(prop)
+        let hasAccessor = $this.#accessors.has(path)
         let previousValue
+        let def
 
-        if (!$this.#accessors.has(path)) {
+        if (!hasAccessor) {
           previousValue = Reflect.get(target, prop, receiver)
 
           // The prop could still be an accessor if it has not yet been "get". So make sure it is
           // defined here.
           if (previousValue?.[accessorDef]) {
             $this.#accessors.set(path, previousValue[accessorDef])
+            hasAccessor = true
           } else {
             Reflect.set(target, prop, value, receiver)
           }
         }
 
         // Handles any accessor.onSet callback.
-        if ($this.#accessors.has(path)) {
-          const def = $this.#accessors.get(path)
+        if (hasAccessor) {
+          def = $this.#accessors.get(path)
 
           previousValue = def.value
           let manuallySet = false
@@ -414,6 +417,8 @@ class IbizaStore {
 
           $this.publishChange({ target, prop, path, previousValue, value })
         }
+
+        hasAccessor && def.afterSet && def.afterSet.call(receiver, previousValue, value)
 
         return true
       },

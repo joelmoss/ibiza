@@ -1,15 +1,20 @@
 import { isQuery, queryFn, accessorDef, isTrackedFn } from './store.js'
 
-// Create a accessor descriptor. This defines a getter and setter with a internally scoped value.
-//
-// - options (Object?)
-// - options.initialValue (any?) - An initial value to assign to the property. If undefined, the
-//   initialValue will be taken from property of the same name in the `obj` argument (if any).
-// - options.onGet (function?) - A function to be called each time the property is "get". It will be
-//   called with property value.
-// - options.onSet (function?) - A function to be called each time the property is "set". It will be
-//   called with the old and new property values. A function is passed as the third argument, which
-//   can be used to manually set the value, allowing you to perform some validation logic.
+/**
+ * Create a accessor descriptor. This defines a getter and setter with a internally scoped value.
+ *
+ * @param {Object} options
+ * @param {any} [options.initialValue] An initial value to assign to the property. If undefined, the
+ *   initialValue will be taken from property of the same name in the `obj` argument (if any).
+ * @param {Function} [options.onGet] A Function to be called each time the property is "get". It
+ *   will be called with property value.
+ * @param {Function} [options.onSet] A function to be called each time the property is "set". It
+ *   will be called with the old and new property values. A function is passed as the third
+ *   argument, which can be used to manually set the value, allowing you to perform some validation
+ *   logic.
+ * @param {Function} [options.afterSet] A function to be called after the property is "set". It will
+ *   be called with the old and new property values arguments.
+ */
 export function accessor(options = {}) {
   const def = {}
 
